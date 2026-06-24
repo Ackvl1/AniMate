@@ -19,6 +19,7 @@ class ProviderConfig:
     default_model: str = ""
     default_max_tokens: int = 4096
     default_temperature: float = 0.7
+    default_context_length: int = 1000000
     extra_headers: dict[str, str] = field(default_factory=dict)
 
 
@@ -75,6 +76,7 @@ def _build_provider_config(info: dict) -> ProviderConfig:
         api_key=api_key,
         base_url=base_url.rstrip("/"),
         default_model=info["default"],
+        default_context_length=info.get("context_length", 1000000),
     )
 
 

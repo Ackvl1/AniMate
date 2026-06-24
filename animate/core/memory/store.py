@@ -233,9 +233,6 @@ class MemoryStore:
             (re.compile(r"I\s+(?:prefer|like|love|use|want|need)\s+(.+)", re.I), "user_pref"),
             (re.compile(r"my\s+(?:favorite|preferred|default)\s+\w+\s+is\s+(.+)", re.I), "user_pref"),
             (re.compile(r"记住(.+)"), "user_pref"),
-            (re.compile(r"以后(.+)"), "user_pref"),
-            (re.compile(r"别(.+)"), "user_pref"),
-            (re.compile(r"下次(.+)"), "user_pref"),
         ]
         extracted = []
         for pat, cat in patterns:

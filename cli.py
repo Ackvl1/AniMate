@@ -36,7 +36,8 @@ def format_debug(response: AgentResponse) -> str:
     return "\n".join(lines)
 
 
-def handle_model_command(parts: list[str], llm: OpenAICompatibleClient) -> bool:
+def handle_model_command(parts: list[str], llm: OpenAICompatibleClient,
+                          agent=None) -> bool:
     """处理 /model 命令。返回 True 表示命令已处理。"""
     if len(parts) > 1 and parts[1] == "list":
         current_provider = find_provider_by_model(llm._model)
@@ -51,6 +52,9 @@ def handle_model_command(parts: list[str], llm: OpenAICompatibleClient) -> bool:
         result = llm.switch_provider(target)
         if result:
             print(f"✅ 已切换到 {result}")
+            # 同步更新压缩阈值以适应新模型的上下文窗口
+            if agent is not None and hasattr(llm, "_provider_config") and llm._provider_config:
+                agent._ctx_mgr.reconfigure(model_limit=llm._provider_config.default_context_length)
         else:
             provider = find_provider_by_model(target)
             if not provider:
@@ -284,7 +288,7 @@ def handle_command(line: str, agent: Agent, llm: OpenAICompatibleClient,
         return True
 
     if cmd == "/model":
-        return handle_model_command(parts, llm)
+        return handle_model_command(parts, llm, agent=agent)
 
     if cmd == "/log":
         if log_db is None:
@@ -467,7 +471,7 @@ def main():
 
     session_store = SessionStore(db_path=str(sessions_dir() / "sessions.db"))
     memory_store = MemoryStore(db_path=str(memory_dir() / "memory.db"))
-    memory_provider = DefaultMemoryProvider(memory_store)
+    memory_provider = DefaultMemoryProvider(memory_store, log_db=log_db)
 
     agent = Agent.create_default(
         llm=llm,

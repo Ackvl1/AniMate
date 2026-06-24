@@ -32,6 +32,9 @@ class AfterNode(Node):
     KNOWN_GESTURES = KNOWN_GESTURES
     EMOTION_GESTURE_RULES = EMOTION_GESTURE_RULES
 
+    reads = {"raw_text", "emotion", "gesture"}
+    writes = {"final_text", "emotion", "gesture"}
+
     async def run(self, ctx: "RunContext", emit) -> NodeResult:
         await emit("node.start", name="after")
         text = ctx.raw_text.strip()

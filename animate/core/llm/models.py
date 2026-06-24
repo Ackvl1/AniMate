@@ -71,6 +71,7 @@ class LLMResult:
     """LLM 调用结果，包含文本和可选的工具调用。"""
     content: str
     tool_calls: list[ToolCall] | None = None
+    total_tokens: int = 0
 
     @property
     def has_tool_calls(self) -> bool:

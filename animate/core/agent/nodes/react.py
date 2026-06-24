@@ -17,6 +17,7 @@ from animate.core.engine.node import Node, NodeResult
 from animate.core.llm.models import LLMResult, ToolCall
 from animate.core.log import setup_logger
 from animate.core.agent.nodes.marker_streamer import TextMarkerStreamer
+from animate.core.memory.conversation import estimate_tokens
 
 if TYPE_CHECKING:
     from animate.core.engine.context import RunContext
@@ -35,6 +36,9 @@ class ReactNode(Node):
 
     MAX_ROUNDS = 10
 
+    reads = {"messages", "is_retry", "feedback", "retry_feedback_injected"}
+    writes = {"messages", "raw_text", "emotion", "gesture", "llm_call_count", "accumulated_usage"}
+
     def __init__(self, llm, tools, permission_manager=None):
         self._llm = llm
         self._tools = tools
@@ -44,8 +48,11 @@ class ReactNode(Node):
         await emit("node.start", name="react")
         messages = list(ctx.messages)
 
-        # Retry feedback injection
-        if ctx.is_retry and ctx.feedback:
+        # Retry feedback injection（level 2-3 "react" 路径，SystemPromptNode 未跑）
+        # 若 ctx.extras["retry_feedback_injected"] 已被 SystemPromptNode 设为 True，
+        # 跳过注入，避免双重注入。
+        if (ctx.is_retry and ctx.feedback
+                and not ctx.extras.get("retry_feedback_injected")):
             feedback_msg = (
                 "【重试指示】上轮回复需要改进：{feedback}\n"
                 "请先说一句符合角色性格的过渡语自然衔接，\n"
@@ -114,6 +121,7 @@ class ReactNode(Node):
 
         streamer = TextMarkerStreamer()
         ctx.llm_call_count += 1
+        usage_before = ctx.accumulated_usage
 
         # 统一的事件处理闭包（捕获 full_content / pending_calls 等局部变量）
         async def handle_event(event: dict) -> None:
@@ -153,6 +161,17 @@ class ReactNode(Node):
 
         tool_calls = self._build_tool_calls(pending_calls, ctx)
         ctx.raw_text = "".join(text_parts)
+
+        # B2: DeepSeek 等 provider 不返回流式 usage → tiktoken 后备
+        if ctx.accumulated_usage <= usage_before:
+            estimated = estimate_tokens(messages)
+            if estimated > 0:
+                ctx.accumulated_usage += estimated
+                logger.info(
+                    "[%s] stream_round usage fallback: +%d tokens (api usage unavailable)",
+                    ctx.trace_id, estimated,
+                )
+
         return LLMResult(content=full_content, tool_calls=tool_calls or None)
 
     def _pre_fetch_on_stream_end(self, pending_calls, pre_fetch_tasks, ctx, round_num):
@@ -244,4 +263,4 @@ class ReactNode(Node):
                         ctx.trace_id, tc.name, len(output), preview)
 
             status = "error" if "失败" in output or "错误" in output else "success"
-            await emit("tool.done", name=tc.name, status=status)
+            await emit("tool.done", name=tc.name, result=output, status=status)

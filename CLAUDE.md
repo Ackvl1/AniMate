@@ -68,6 +68,8 @@ class Node(ABC):
 - **Trust scoring**: regex facts 0.3, LLM facts 0.7, retrieval boost (capped at 0.2)
 - **Session rotation**: compress → freeze old session → create new session
 - **Log rotation**: auto-archive by size (50MB) or age (30 days)
+- **Audit logging**: LogCollector routes emit events → compression_logs, tool_audit, emotion_logs, long_term_facts
+- **Token fallback**: tiktoken `estimate_tokens()` when API streaming usage unavailable
 
 ### Agent public methods
 
@@ -134,3 +136,20 @@ agent = Agent.create_default(..., permission_manager=pm)
 | A new shared constant | `animate/core/constants.py` |
 | Compression params | `config.yaml` → `compress` section |
 | Log rotation params | `config.yaml` → `log` section |
+
+## Next Phase (6): LangGraph Pure-Function Architecture
+
+Goal: Migrate from BSP shared-ctx to LangGraph-style return-diff.
+
+```
+Current:
+  node.run(ctx, emit) → writes ctx.some_field = value
+
+Phase 6:
+  node.run(inputs) → returns {"field": value}  # pure function
+  GraphEngine applies diff, FIELD_WRITERS enforced
+```
+
+Benefits: zero-mock testing, LangGraph compatibility, FIELD_WRITERS auto-activates.
+
+See `docs/architecture-decision-records.md#adr-13-phase-52--全量-bug-修复--审计日志` and `docs/phase5.2-bug-fixes-summary.md`.

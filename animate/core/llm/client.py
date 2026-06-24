@@ -164,9 +164,12 @@ class OpenAICompatibleClient:
             try:
                 resp = self._client.chat.completions.create(**kwargs)
                 msg = resp.choices[0].message
+                usage_tokens = getattr(resp, "usage", None)
+                total_tokens = usage_tokens.total_tokens if usage_tokens else 0
                 return LLMResult(
                     content=msg.content or "",
                     tool_calls=ToolCall.from_openai(msg.tool_calls),
+                    total_tokens=total_tokens,
                 )
             except self._retryable_errors() as e:
                 if attempt == self._max_retries:
@@ -176,6 +179,30 @@ class OpenAICompatibleClient:
             except Exception as e:
                 raise LLMError(f"LLM 调用失败: {e}") from e
         raise LLMError("LLM 调用失败：所有重试已耗尽")
+
+    async def chat_async(self, messages: list[dict], tools: list | None = None) -> LLMResult:
+        """异步调用（不阻塞事件循环），用于 ContextManager 摘要等异步路径。"""
+        self._ensure_async_client()
+        kwargs = self._build_kwargs(messages, tools, stream=False)
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                resp = await self._async_client.chat.completions.create(**kwargs)
+                msg = resp.choices[0].message
+                usage_tokens = getattr(resp, "usage", None)
+                total_tokens = usage_tokens.total_tokens if usage_tokens else 0
+                return LLMResult(
+                    content=msg.content or "",
+                    tool_calls=ToolCall.from_openai(msg.tool_calls),
+                    total_tokens=total_tokens,
+                )
+            except self._retryable_errors() as e:
+                if attempt == self._max_retries:
+                    raise LLMError(f"LLM 异步调用失败（已重试 {self._max_retries} 次）: {e}") from e
+                self._wait_and_log(attempt, e)
+                continue
+            except Exception as e:
+                raise LLMError(f"LLM 异步调用失败: {e}") from e
+        raise LLMError("LLM 异步调用失败：所有重试已耗尽")
 
     def chat_stream(self, messages: list[dict], tools: list | None = None) -> Generator[dict, None, None]:
         """流式调用，yield 统一事件字典。"""
@@ -284,11 +311,12 @@ class OpenAICompatibleClient:
             "model": self._model,
             "messages": safe_messages,
             "stream": stream,
-            "stream_options": {"include_usage": True} if stream else None,
             "timeout": self._timeout,
             "temperature": self._temperature,
             "max_tokens": self._max_tokens,
         }
+        if stream:
+            kwargs["stream_options"] = {"include_usage": True}
         if tools:
             kwargs["tools"] = tools
         return kwargs

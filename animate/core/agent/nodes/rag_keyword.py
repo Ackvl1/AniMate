@@ -16,6 +16,9 @@ logger = setup_logger(__name__)
 class RAGKeywordNode(Node):
     """关键词检索。无外部依赖，可与 RAGVectorNode 并行。"""
 
+    reads = {"user_input"}
+    writes = {"rag_keyword_chunks"}
+
     def __init__(self, keyword_store):
         self._keyword_store = keyword_store
 

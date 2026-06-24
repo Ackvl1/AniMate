@@ -19,6 +19,9 @@ logger = setup_logger(__name__)
 class MergeNode(Node):
     """收 RAGVectorNode、RAGKeywordNode、SystemPromptNode 的结果，组装 ctx.messages。"""
 
+    reads = {"rag_vector_chunks", "rag_keyword_chunks", "system_parts", "messages", "user_input"}
+    writes = {"messages"}
+
     async def run(self, ctx: "RunContext", emit) -> NodeResult:
         await emit("node.start", name="merge")
 
@@ -39,8 +42,14 @@ class MergeNode(Node):
         else:
             ctx.messages.insert(0, {"role": "system", "content": system_text})
 
-        # 4. 追加 user 输入
-        ctx.messages.append({"role": "user", "content": ctx.user_input})
+        # 4. 防御纵深：user_input 已在 agent.py 注入，此处不重复追加
+        #    仅在极端回退场景（ctx.messages 末尾缺 user）时补入
+        last_user_idx = next(
+            (i for i in range(len(ctx.messages) - 1, -1, -1)
+             if ctx.messages[i].get("role") == "user"), -1
+        )
+        if last_user_idx < 0:
+            ctx.messages.append({"role": "user", "content": ctx.user_input})
 
         history_turns = sum(1 for m in ctx.messages if m["role"] == "assistant")
         logger.info("[%s] merge: %d rag chunks, %d history turns, %d total msgs",

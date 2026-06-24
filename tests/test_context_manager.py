@@ -190,11 +190,11 @@ class TestCompress:
         cm = ContextManager()
         msgs = [
             {"role": "user", "content": "你好"},
-            {"role": "tool", "content": "A" * 1000},
+            {"role": "tool", "content": "A" * 6000},
             {"role": "assistant", "content": "回复"},
         ]
         cm._snip_tool_results(msgs, [1])
-        assert len(msgs[1]["content"]) < 100
+        assert "[工具结果较长，已压缩]" in msgs[1]["content"]
 
     def test_snip_skips_small_tool_results(self):
         """小工具结果不被 Snip 处理。"""

@@ -35,6 +35,9 @@ class ReflectNode(Node):
 
     MAX_LLM_CALL_LIMIT = 20
 
+    reads = {"final_text", "user_input", "llm_call_count", "accumulated_usage"}
+    writes = {"is_retry", "feedback", "retry_feedback_injected", "accumulated_usage", "llm_call_count"}
+
     def __init__(self, llm, max_retry_calls: int | None = None):
         self._llm = llm
         self._max_retry_calls = max_retry_calls if max_retry_calls is not None else self.MAX_LLM_CALL_LIMIT
@@ -58,6 +61,8 @@ class ReflectNode(Node):
             ]
             result = self._llm.chat(eval_messages)
             ctx.llm_call_count += 1
+            if result.total_tokens:
+                ctx.accumulated_usage += result.total_tokens
 
             raw = result.content.strip()
             # 提取 analysis（如果有的话）
@@ -93,6 +98,7 @@ class ReflectNode(Node):
             if level >= 2:
                 ctx.feedback = feedback
                 ctx.is_retry = True
+                ctx.extras.pop("retry_feedback_injected", None)  # 清残留标记
                 return NodeResult(next_node="react")
 
             return NodeResult()

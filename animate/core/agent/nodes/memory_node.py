@@ -20,6 +20,9 @@ class MemoryNode(Node):
     注册在 graph 的 fan_out 之前，与 RAG 节点不会并行冲突。
     """
 
+    reads = {"user_input"}
+    writes = {"memory_facts"}
+
     def __init__(self, provider: MemoryProvider):
         self._provider = provider
 

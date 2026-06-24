@@ -2,9 +2,11 @@
 
 import json
 import sqlite3
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+_LOCAL_TZ = timezone(timedelta(hours=8))  # UTC+8，与 config.yaml timezone 对齐
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -16,6 +18,19 @@ CREATE TABLE IF NOT EXISTS sessions (
     frozen_at   TIMESTAMP NULL
 );
 """
+
+
+def _utc_to_local(utc_str: str | None) -> str:
+    """SQLite CURRENT_TIMESTAMP (UTC) → 本地时间字符串。"""
+    if not utc_str:
+        return ""
+    try:
+        utc_dt = datetime.strptime(utc_str[:19], "%Y-%m-%d %H:%M:%S").replace(
+            tzinfo=timezone.utc
+        )
+        return utc_dt.astimezone(_LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, TypeError):
+        return utc_str[:19] if utc_str else ""
 
 
 class SessionStore:
@@ -75,7 +90,7 @@ class SessionStore:
         return self._conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
 
     def list_sessions(self, active_only: bool = False) -> list[dict[str, Any]]:
-        """列出所有 session。active_only=True 则仅活跃 session。"""
+        """列出所有 session。active_only=True 则仅活跃 session。时间戳已转换为本地时间。"""
         if active_only:
             rows = self._conn.execute(
                 "SELECT * FROM sessions WHERE active = 1 ORDER BY created_at DESC"
@@ -84,7 +99,13 @@ class SessionStore:
             rows = self._conn.execute(
                 "SELECT * FROM sessions ORDER BY created_at DESC"
             ).fetchall()
-        return [dict(r) for r in rows]
+        sessions = [dict(r) for r in rows]
+        for s in sessions:
+            s["created_at"] = _utc_to_local(s.get("created_at"))
+            frozen = s.get("frozen_at")
+            if frozen:
+                s["frozen_at"] = _utc_to_local(frozen)
+        return sessions
 
     def save_messages(self, session_id: str, messages: list[dict]) -> None:
         """每轮对话后持久化消息列表到指定 session。"""

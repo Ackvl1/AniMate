@@ -14,6 +14,7 @@ class RunServices:
     稳定的依赖在 Node 构造时注入，运行时可变的通过此容器传入。
     """
     memory: Any | None = None
+    log_db: Any | None = None
 
 
 # ── 写保护：每个字段声明谁可以写 ──

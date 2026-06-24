@@ -18,11 +18,12 @@ def test_project_root_is_absolute_path():
     assert root.is_absolute()
 
 
-def test_data_root_is_under_project_root():
-    """data_root() 应在 project_root/data/。"""
+def test_data_root_is_under_animate():
+    """data_root() 应在 project_root/animate/data/。"""
     root = data_root()
     assert root.name == "data"
-    assert root.parent == project_root()
+    assert root.parent.name == "animate"
+    assert root.parent.parent == project_root()
 
 
 def test_project_root_contains_animate():
@@ -51,6 +52,5 @@ def test_keywordlibrary_dir():
 
 def test_logs_dir():
     """logs_dir() 应返回 animate/data/logs/。"""
-    from animate.core.paths import project_root
     d = logs_dir()
-    assert d == project_root() / "animate" / "data" / "logs"
+    assert d == data_root() / "logs"

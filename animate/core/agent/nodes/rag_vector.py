@@ -20,6 +20,9 @@ class RAGVectorNode(Node):
     内部串行（embed 依赖），与 RAGKeywordNode / SystemPromptNode 并行。
     """
 
+    reads = {"user_input"}
+    writes = {"rag_vector_chunks"}
+
     def __init__(self, vector_store):
         self._vector_store = vector_store
 

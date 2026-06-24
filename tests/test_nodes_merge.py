@@ -76,14 +76,15 @@ async def test_no_chunks_omits_rag_section():
 
 @pytest.mark.asyncio
 async def test_injects_memory_history():
-    """MergeNode 不丢失已有的历史消息（新架构：Agent 在 engine.run 前已注入历史）。"""
+    """MergeNode 不丢失已有的历史消息（新架构：Agent 在 engine.run 前已注入历史 + user_input）。"""
     from animate.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="你好")
-    # 新架构：Agent 在 engine.run 前已把历史注入 ctx.messages
+    # 新架构：Agent 在 engine.run 前已把历史 + user_input 注入 ctx.messages
     ctx.messages = [
         {"role": "user", "content": "上轮问题"},
         {"role": "assistant", "content": "上轮回答"},
+        {"role": "user", "content": "你好"},  # agent.py 注入
     ]
     ctx.extras["rag_vector_chunks"] = []
     ctx.extras["rag_keyword_chunks"] = []

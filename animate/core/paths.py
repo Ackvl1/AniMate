@@ -12,7 +12,7 @@ def project_root() -> Path:
 
 def data_root() -> Path:
     """返回数据层根目录 animate/data/。"""
-    return project_root() / "data"
+    return project_root() / "animate" / "data"
 
 
 def documents_dir() -> Path:
@@ -28,7 +28,7 @@ def keywordlibrary_dir() -> Path:
 
 
 def logs_dir() -> Path:
-    return project_root() / "animate" / "data" / "logs"
+    return data_root() / "logs"
 
 
 def memory_dir() -> Path:

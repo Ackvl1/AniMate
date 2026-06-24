@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 class DefaultMemoryProvider(MemoryProvider):
     """基于 MemoryStore (SQLite + FTS5) 的默认长期记忆实现。"""
 
-    def __init__(self, store: MemoryStore | None = None):
+    def __init__(self, store: MemoryStore | None = None, log_db=None):
         self._store = store or MemoryStore()
+        self._log_db = log_db
         self._session_id: str = ""
 
     @property
@@ -28,6 +29,11 @@ class DefaultMemoryProvider(MemoryProvider):
 
     def initialize(self, session_id: str, **kwargs) -> None:
         self._session_id = session_id
+
+    def on_session_switch(self, new_session_id: str, old_session_id: str) -> None:
+        """session rotation 时更新内部 session_id 跟踪。"""
+        logger.debug("[memory] session switch: %s → %s", old_session_id, new_session_id)
+        self._session_id = new_session_id
 
     def prefetch(self, query: str, *, limit: int = 5) -> list[dict[str, Any]]:
         """每轮对话前检索相关长期事实。
@@ -150,6 +156,11 @@ class DefaultMemoryProvider(MemoryProvider):
                     args["content"],
                     category=args.get("category", "general"),
                 )
+                if self._log_db:
+                    self._log_db.add_fact(
+                        fact_text=args["content"],
+                        source_trace=self._session_id or "cli",
+                    )
                 return json.dumps({"fact_id": fid, "status": "added"})
             elif action == "search":
                 results = self._store.search_facts(

@@ -7,6 +7,7 @@ llm:
     name: DeepSeek
     base_url: https://api.deepseek.com/v1
     api_key_env: OPENAI_CHAT_API_KEY
+    context_length: 65536
     models:
       - deepseek-v4-flash
       - deepseek-v4-pro
@@ -16,6 +17,7 @@ llm:
     name: 智谱 GLM
     base_url: https://open.bigmodel.cn/api/paas/v4
     api_key_env: ZAI_API_KEY
+    context_length: 131072
     models:
       - glm-4.7
       - glm-4.5
@@ -27,6 +29,7 @@ llm:
     name: 阿里通义 Qwen
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     api_key_env: QWEN_API_KEY
+    context_length: 131072
     models:
       - qwen-3
       - qwen-2.5-72b-instruct

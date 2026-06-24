@@ -19,6 +19,9 @@ class SystemPromptNode(Node):
 
     EMOTION_INSTRUCTION = EMOTION_INSTRUCTION_TEXT
 
+    reads = {"is_retry", "feedback", "memory_facts"}
+    writes = {"system_parts", "retry_feedback_injected"}
+
     def __init__(self, persona: str):
         self._persona = persona
 
@@ -35,13 +38,14 @@ class SystemPromptNode(Node):
             facts_str = "\n".join(f"- {t}" for t in texts if t)
             system_parts.append(f"## 角色记忆（跨会话）\n{facts_str}")
 
-        # 重试反馈注入
+        # 重试反馈注入（level 4 "before" 路径时 SystemPromptNode 会跑）
         if ctx.is_retry and ctx.feedback:
             system_parts.append(
                 "【重试指示】上轮回复需要改进：{feedback}\n"
                 "请先说一句符合角色性格的过渡语自然衔接，\n"
                 "然后输出修正后的回答。".format(feedback=ctx.feedback)
             )
+            ctx.extras["retry_feedback_injected"] = True
 
         logger.info("[%s] system_prompt: facts=%d, retry=%s",
                     ctx.trace_id, len(long_term_facts), ctx.is_retry)

@@ -16,7 +16,6 @@ from animate.core.agent.nodes.rag_keyword import RAGKeywordNode
 from animate.core.agent.nodes.system_prompt import SystemPromptNode
 from animate.core.agent.nodes.merge import MergeNode
 from animate.core.agent.response import AgentResponse
-from animate.core.memory.conversation import count_rounds
 from animate.core.tools.registry import ToolRegistry
 from animate.core.tools.function.memory_tools import MemoryProviderToolWrapper
 from animate.core.agent.logging import PhaseEventLogger
@@ -62,6 +61,9 @@ class Agent:
         self._tools = tools or ToolRegistry()
         self._mcp_clients = mcp_clients or []
         self._log_db = log_db
+        # 审计日志收集器（延迟初始化）
+        self._log_collector = None
+
         self._permission_manager = permission_manager
         self._memory_provider = memory_provider
         self._phase_logger: PhaseEventLogger | None = None
@@ -81,6 +83,13 @@ class Agent:
         if self._memory_provider:
             for schema in self._memory_provider.get_tool_schemas():
                 self._tools.register_tool(MemoryProviderToolWrapper(schema, self._memory_provider))
+
+        # Register session search tool（允许 LLM 检索历史对话）
+        if self._session_store:
+            from animate.core.tools.function.memory_tools import SessionSearchTool
+            self._tools.register_tool(
+                SessionSearchTool(self._session_store, self._session_id)
+            )
 
         self._graph = self._build_graph(llm, persona, vector_store, keyword_store,
                                         self._tools, permission_manager, memory_provider)
@@ -181,6 +190,21 @@ class Agent:
 
     def compact(self) -> dict:
         """手动触发压缩。始终尝试压缩，不检查阈值。"""
+        # 前置检查：消息轮数过少时明确返回 skip，而非模糊的 error
+        head_rounds = getattr(self._ctx_mgr, '_head_rounds', 5)
+        tail_rounds = getattr(self._ctx_mgr, '_tail_rounds', 10)
+        min_needed = (head_rounds + tail_rounds) * 2
+        if len(self._messages) < min_needed:
+            return {
+                "status": "skip",
+                "message": f"消息轮数过少（{len(self._messages)} < {min_needed}），跳过压缩",
+                "compress_count": self._ctx_mgr._compress_count,
+            }
+
+        import uuid as _uuid2
+        _trace_id = _uuid2.uuid4().hex[:8]
+        old_sid = self._session_id
+
         try:
             new_sid = self._ctx_mgr.compress(
                 self._messages, session_id=self._session_id
@@ -191,6 +215,16 @@ class Agent:
                         new_sid, self._session_id
                     )
                 self._session_id = new_sid
+            # 压缩审计日志（compact 是同步 CLI 调用）
+            if self._log_collector:
+                self._log_collector.log_compression(
+                    trace_id=_trace_id,
+                    compress_count=self._ctx_mgr._compress_count,
+                    success=new_sid is not None,
+                    old_session_id=old_sid,
+                    new_session_id=new_sid or "",
+                )
+            if new_sid:
                 return {
                     "status": "ok",
                     "message": f"压缩完成 (#{self._ctx_mgr._compress_count})",
@@ -273,9 +307,12 @@ class Agent:
         """
         ctx = RunContext(user_input=user_input)
         ctx.services.memory = None
+        ctx.services.log_db = getattr(self, '_log_db', None)
 
-        # 从短期记忆加载历史（复制，非引用）
-        ctx.messages = list(self._messages)
+        # 从短期记忆加载历史（复制，非引用）+ 注入本轮用户输入
+        ctx.messages = list(self._messages) + [
+            {"role": "user", "content": user_input}
+        ]
 
         engine = self._graph.create_engine(max_steps=MAX_GRAPH_STEPS)
 
@@ -290,19 +327,39 @@ class Agent:
         pl = self._phase_logger
         pl.on_chat_start(ctx.trace_id, user_input)
 
-        # ── Pre-turn: 上下文压缩 + Session Rotation ──
+        # ── Pre-turn: 上下文压缩 + Session Rotation（异步，不阻塞事件循环）──
         if self._ctx_mgr.need_compress():
+            session_id_before = self._session_id
             try:
-                new_sid = self._ctx_mgr.compress(
+                new_sid = await self._ctx_mgr.compress_async(
                     self._messages, session_id=self._session_id
                 )
                 if new_sid and self._memory_provider:
                     self._memory_provider.on_session_switch(new_sid, self._session_id)
                 if new_sid:
                     self._session_id = new_sid
-                ctx.messages = list(self._messages)  # 重新同步到 ctx
+                # 重新同步：压缩后 self._messages 已被 snip/clear 修改，需重新组合
+                ctx.messages = list(self._messages) + [
+                    {"role": "user", "content": user_input}
+                ]
+                # 压缩审计日志
+                if self._log_collector:
+                    self._log_collector.log_compression(
+                        trace_id=ctx.trace_id,
+                        compress_count=self._ctx_mgr._compress_count,
+                        success=True,
+                        old_session_id=session_id_before,
+                        new_session_id=self._session_id,
+                    )
             except Exception as e:
-                logger.warning("compress 失败: %s", e)
+                logger.warning("compress_async 失败: %s", e)
+                if self._log_collector:
+                    self._log_collector.log_compression(
+                        trace_id=ctx.trace_id,
+                        compress_count=self._ctx_mgr._compress_count,
+                        success=False,
+                        error_msg=str(e),
+                    )
 
         # 长期记忆注入（当没有 MemoryProvider 时，agent 层预填）
         if not any(
@@ -317,10 +374,18 @@ class Agent:
                 pass
 
         # emit 函数：节点运行时实时将事件放入 asyncio.Queue
+        # 同时分派到 PhaseEventLogger（阶段日志）和 LogCollector（审计日志）
         async def emit(type: str, **data):
-            ev = AgentEvent(type=type, **data)
+            ev = AgentEvent(type=type, trace_id=ctx.trace_id, **data)
             await queue.put(ev)
             pl.handle_event(type, **data)
+            if self._log_collector is not None:
+                self._log_collector.handle(ev)
+
+        # 延迟初始化 LogCollector
+        if self._log_collector is None and self._log_db is not None:
+            from animate.core.log.collector import LogCollector
+            self._log_collector = LogCollector(self._log_db)
 
         async def _run_engine():
             """后台任务：运行引擎，完成后通过哨兵通知。"""

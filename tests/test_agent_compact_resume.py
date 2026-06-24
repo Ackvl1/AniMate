@@ -19,11 +19,12 @@ class TestAgentCompact:
     """Agent.compact() 手动触发压缩。"""
 
     def test_compact_force_compress(self):
-        """compact 是强制压缩，不再检查 need_compress。"""
+        """compact 但消息过少时返回 skip。"""
         agent = _make_agent()
         result = agent.compact()
-        # 即使 _accumulated=0，也不返回 skip
-        assert result["status"] != "skip"
+        # 消息为空，明确返回 skip（B3 修复：区分 skip/fail/error）
+        assert result["status"] == "skip"
+        assert "消息轮数过少" in result["message"]
 
     def test_compact_with_enough_messages(self):
         """消息足够时 → 触发压缩。"""

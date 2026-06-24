@@ -25,9 +25,9 @@ class TestExtractQuickFacts:
         fids = store.extract_quick_facts("记住我喜欢编程")
         assert len(fids) >= 1
 
-    def test_future_rule(self, store):
-        """'以后别叫我先生' 应提取。"""
-        fids = store.extract_quick_facts("以后别叫我先生")
+    def test_remember_with_direction(self, store):
+        """'记住别叫我先生' 应提取。"""
+        fids = store.extract_quick_facts("记住别叫我先生")
         assert len(fids) >= 1
 
     def test_no_match(self, store):

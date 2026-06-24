@@ -43,15 +43,15 @@ class TestToolArgsSnip:
         args = messages[0]["tool_calls"][0]["function"]["arguments"]
         assert args == small_args
 
-    def test_tool_result_still_snipped_at_500(self):
-        """tool 结果仍然按 500 chars 截断（向后兼容）。"""
-        large_result = "x" * 1000
+    def test_tool_result_still_snipped_at_5000(self):
+        """tool 结果按 5000 chars 截断。"""
+        large_result = "x" * 6000
         messages = [
             {"role": "tool", "content": large_result},
         ]
         middle = {0}
         self.cm._snip_tool_results(messages, middle)
-        assert len(messages[0]["content"]) < 1000
+        assert len(messages[0]["content"]) < 6000
         assert "[工具结果较长，已压缩]" in messages[0]["content"]
 
     def test_non_tool_messages_ignored(self):

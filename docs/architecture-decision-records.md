@@ -198,3 +198,30 @@
 - 角色名、语气、说话风格全部在文本文件中定义
 
 **代价**: 每新增一个角色需要创建一份 persona.txt + 构建 RAG 知识库。加载和切换角色需要重启 Agent 或运行时切换 prompt。
+
+---
+
+## ADR-13: Phase 5.2 — 全量 Bug 修复 + 审计日志
+
+**状态**: ✅ 已实现 (2026-06-24)  
+**背景**: 首次全量审计发现 23 个 bug（7 P1 / 7 P2 / 7 P3 / 2 P4），修复 21 个。详见 `docs/phase5.2-bug-fixes-summary.md`。
+
+### 关键决策
+
+| 决策 | 选择 | 理由 |
+|------|------|------|
+| user_input 注入点 | 上移到 agent.py（引擎前） | MergeNode 不可重入，retry 导致重复追加 |
+| retry feedback 防重 | `ctx.extras` 标记互斥 | 两路 retry 路径（"before"/"react"）共享 ReactNode，标记是最小侵入方案 |
+| 压缩不阻塞事件循环 | 全链路 async（`chat_async` + `compress_async`） | 项目已有 AsyncOpenAI 客户端，缺 `chat_async()` 方法 |
+| 审计日志架构 | LogCollector 事件分派 + 直接调用 | Node 零感知；ContextManager/MemoryProvider 无 emit，直接注入 log_db |
+| streaming token 计数 | tiktoken 三层递退（API → tiktoken → 字符粗估） | DeepSeek 不返回 usage 块，主流框架（LiteLLM/LangChain）都用此模式 |
+| Node reads/writes | 7 节点全部声明 | BSP 冲突检测从未生效；声明后并行/串行路径全有数据 |
+| check_write_permission | 暂不激活（留 Phase 6） | FIELD_WRITERS 节点名过时；收益面窄（主要覆盖 extras 外字段）|
+
+### 后续计划
+
+**Phase 6**: 改造为 LangGraph 风格 return-diff 架构
+- 节点返回 dict diff，GraphEngine 统一 apply
+- 测试零 mock（纯 dict 输入输出）
+- check_write_permission 在 apply 时自动生效
+- 上 LangGraph 或自研 return-diff 引擎

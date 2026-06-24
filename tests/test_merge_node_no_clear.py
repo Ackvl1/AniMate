@@ -13,13 +13,15 @@ class TestMergeNodeNoClear:
 
     @pytest.fixture
     def mock_ctx(self):
-        """构造模拟的 RunContext。"""
+        """构造模拟的 RunContext（模拟 agent.py 已注入 user_input）。"""
         class MockCtx:
             def __init__(self):
                 self.user_input = "你好"
+                # 新架构：agent.py 在 engine.run 前已将 user_input 注入 messages
                 self.messages = [
                     {"role": "user", "content": "上一轮问题"},
                     {"role": "assistant", "content": "上一轮回答"},
+                    {"role": "user", "content": "你好"},  # agent.py 注入
                 ]
                 self.extras = {
                     "system_parts": ["你是助手", "情绪指令"],
@@ -88,6 +90,7 @@ class TestMergeNodeNoClear:
         mock_ctx.messages = [
             {"role": "user", "content": "历史1"},
             {"role": "assistant", "content": "历史回复1"},
+            {"role": "user", "content": "你好"},  # agent.py 注入
         ]
         await node.run(mock_ctx, noop_emit)
         roles = [m["role"] for m in mock_ctx.messages]

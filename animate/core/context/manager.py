@@ -27,6 +27,7 @@ class ContextManager:
         tail_rounds: int | None = None,
         llm=None,
         session_store=None,
+        log_db=None,
     ):
         # 从 config.yaml 加载默认值
         from animate.core.config import get_compress_config
@@ -39,6 +40,7 @@ class ContextManager:
         self._tail_rounds = tail_rounds if tail_rounds is not None else cfg["tail_rounds"]
         self._llm = llm
         self._session_store = session_store
+        self._log_db = log_db
         self._accumulated = 0
         self._compact_failures = 0
         self._compact_max_failures = 3
@@ -78,6 +80,7 @@ class ContextManager:
             compact_ok = self._auto_compact(messages, head, tail, middle, ctx or {})
 
         if not compact_ok:
+            self._fail_or_degrade()
             return None  # 摘要失败，不旋转
 
         self._compress_count += 1
@@ -97,6 +100,111 @@ class ContextManager:
             return new_sid
 
         return None
+
+    async def compress_async(self, messages: list[dict], ctx: dict | None = None,
+                              session_id: str | None = None) -> str | None:
+        """异步版本压缩管道（不阻塞事件循环）。用于 chat_stream() pre-turn 路径。"""
+        if len(messages) < (self._head_rounds + self._tail_rounds) * 2:
+            logger.info("compress_async: 消息轮数过少，跳过")
+            return None
+
+        head = self._select_head(messages)
+        tail = self._select_tail(messages)
+        middle = [i for i in range(len(messages)) if i not in head and i not in tail]
+
+        if len(middle) < 2:
+            logger.info("compress_async: 中间无消息可压")
+            return None
+
+        # L1: Snip 工具结果（同步，内存操作无 I/O）
+        self._snip_tool_results(messages, middle)
+
+        # L4: LLM 摘要（异步，不阻塞事件循环）
+        compact_ok = False
+        if self._llm:
+            compact_ok = await self._auto_compact_async(messages, head, tail, middle, ctx or {})
+
+        if not compact_ok:
+            self._fail_or_degrade()
+            return None
+
+        self._compress_count += 1
+        self._accumulated = 0
+
+        if session_id and self._session_store:
+            old_sid = session_id
+            new_sid = f"{old_sid}_c{self._compress_count}"
+            self._session_store.finalize(old_sid)
+            self._session_store.init_session(
+                new_sid, list(messages), parent_id=old_sid
+            )
+            logger.info("session rotated (async): %s → %s", old_sid, new_sid)
+            return new_sid
+
+        return None
+
+    async def _auto_compact_async(
+        self,
+        messages: list[dict], head: set[int], tail: set[int],
+        middle_indices: list[int] | set[int],
+        ctx: dict | None = None,
+    ) -> bool:
+        """异步版本 LLM 摘要替换中间段落。不阻塞事件循环。"""
+        if not middle_indices:
+            return False
+        middle_msgs = [messages[i] for i in sorted(middle_indices)]
+
+        total_budget = 8000
+        per_msg = total_budget // max(len(middle_msgs), 1)
+
+        emotion_log = ctx.get("emotion_log", [])
+        emotion_section = ""
+        if emotion_log:
+            emotion_section = "## 情绪变化记录\n" + "\n".join(
+                f"- 第 {e.get('turn', '?')} 轮: {e.get('emotion', '?')}" for e in emotion_log
+            )
+
+        prompt = (
+            "你正在压缩一段对话历史。请生成结构化摘要：\n\n"
+            "## 已解决事项\n（已完成的任务、已回答的问题）\n\n"
+            "## 活跃中事项\n（当前仍在进行的事项）\n\n"
+            "## 用户偏好与约定\n（用户表达的喜好、习惯、约定）\n\n"
+            f"{emotion_section}\n\n"
+            "## 关键决策\n（做出的重要选择及理由）\n\n"
+            "对话内容：\n"
+        )
+        for m in middle_msgs:
+            role = m.get("role", "unknown")
+            content = str(m.get("content", ""))[:per_msg]
+            prompt += f"\n{role}: {content}"
+
+        try:
+            result = await self._llm.chat_async([{"role": "user", "content": prompt}])
+            summary = result.content.strip()
+        except Exception as e:
+            logger.warning("LLM 摘要失败 (async): %s", e)
+            self._compact_failures += 1
+            return False
+
+        if not summary:
+            return False
+
+        # 替换 middle 区域（修复 B9：插入位置基于 head|tail 新列表索引）
+        sorted_indices = sorted(head | tail)
+        head_max = max(head) if head else -1
+        insert_pos = sorted_indices.index(head_max) + 1 if head_max >= 0 else 0
+        new_messages = [messages[i] for i in sorted_indices]
+        new_messages.insert(
+            insert_pos,
+            {
+                "role": "system",
+                "content": f"[对话历史压缩 #{self._compress_count + 1}]\n{summary}",
+                "x_compressible": True,
+            },
+        )
+        messages.clear()
+        messages.extend(new_messages)
+        return True
 
     def _select_head(self, messages: list[dict]) -> set[int]:
         """保护所有非 x_compressible 的 system prompt + 最早 head_rounds 轮非 system 消息。"""
@@ -129,7 +237,7 @@ class ContextManager:
 
     def _snip_tool_results(self, messages: list[dict], indices: set[int]) -> None:
         """替换大工具结果和超大 tool_call arguments 为占位符。"""
-        RESULT_THRESHOLD = 500
+        RESULT_THRESHOLD = 5000
         ARGS_THRESHOLD = 2000
         for i in indices:
             m = messages[i]
@@ -190,9 +298,11 @@ class ContextManager:
         if not summary:
             return False
 
-        # 替换 middle 区域
-        new_messages = [messages[i] for i in sorted(head | tail)]
-        insert_pos = min(middle_indices)
+        # 替换 middle 区域（修复 B9：插入位置基于 head|tail 新列表索引）
+        sorted_indices = sorted(head | tail)
+        head_max = max(head) if head else -1
+        insert_pos = sorted_indices.index(head_max) + 1 if head_max >= 0 else 0
+        new_messages = [messages[i] for i in sorted_indices]
         new_messages.insert(
             insert_pos,
             {
@@ -212,6 +322,24 @@ class ContextManager:
                 f"压缩连续失败 {self._compact_failures} 次，请检查 API 状态或 /reset"
             )
         return False
+
+    def reconfigure(self, model_limit: int | None = None,
+                     threshold: float | None = None, **kwargs) -> None:
+        """运行时重配置压缩参数（模型切换后调用）。
+
+        不重置累计计数，仅更新后续使用的阈值。
+        """
+        if model_limit is not None:
+            self._model_limit = model_limit
+            self._effective_window = self._model_limit - self._compact_reserve
+        if threshold is not None or model_limit is not None:
+            t = threshold if threshold is not None else None
+            from animate.core.config import get_compress_config
+            cfg = get_compress_config()
+            self._threshold = int(self._effective_window * (t if t is not None else cfg["threshold"]))
+        if kwargs:
+            logger.info("reconfigure: model_limit=%s threshold=%s kwargs=%s",
+                         model_limit, threshold, kwargs)
 
     def reset(self) -> None:
         """重置累计值。"""
