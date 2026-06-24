@@ -137,19 +137,22 @@ agent = Agent.create_default(..., permission_manager=pm)
 | Compression params | `config.yaml` → `compress` section |
 | Log rotation params | `config.yaml` → `log` section |
 
-## Next Phase (6): LangGraph Pure-Function Architecture
+## Next Phase (6): Self-Built Return-Diff Architecture (No LangGraph Dependency)
 
-Goal: Migrate from BSP shared-ctx to LangGraph-style return-diff.
+Migrate nodes from directly writing ctx to returning diffs. Existing GraphEngine stays — only change the Node interface and `_run_node`.
 
 ```
-Current:
-  node.run(ctx, emit) → writes ctx.some_field = value
+# Current
+node.run(ctx, emit)  → writes ctx.some_field = value
 
-Phase 6:
-  node.run(inputs) → returns {"field": value}  # pure function
-  GraphEngine applies diff, FIELD_WRITERS enforced
+# Phase 6
+node.run(inputs, emit) → returns {"field": value}   # pure function
+_run_node(root):
+    for k, v in result.items():
+        check_permission(k, node_name)    # FIELD_WRITERS enforced
+        setattr(ctx, k, v)                 # engine applies
 ```
 
-Benefits: zero-mock testing, LangGraph compatibility, FIELD_WRITERS auto-activates.
+Benefits: zero-mock testing, FIELD_WRITERS auto-activates, no new dependencies.
 
-See `docs/architecture-decision-records.md#adr-13-phase-52--全量-bug-修复--审计日志` and `docs/phase5.2-bug-fixes-summary.md`.
+Already have 80% of the infrastructure: Graph, BSP conflict detection, conditional_edge, reads/writes declarations, NodeResult.data.

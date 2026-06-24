@@ -220,8 +220,22 @@
 
 ### 后续计划
 
-**Phase 6**: 改造为 LangGraph 风格 return-diff 架构
-- 节点返回 dict diff，GraphEngine 统一 apply
-- 测试零 mock（纯 dict 输入输出）
-- check_write_permission 在 apply 时自动生效
-- 上 LangGraph 或自研 return-diff 引擎
+**Phase 6**: 自研 LangGraph 风格 return-diff 架构（不装 langgraph 包）
+
+已有基础设施已覆盖 LangGraph 的 80%：Graph/GraphEngine、BSP 冲突检测、conditional_edge、FIELD_WRITERS。
+
+只缺一个改动——节点从直接写 ctx 改为返回 dict，`_run_node` 在末尾统一 apply：
+
+```python
+# 当前
+node.run(ctx, emit)          # 节点内部 ctx.messages = ...
+
+# Phase 6
+result = await node.run(inputs, emit)   # inputs = ctx 只读快照
+for k, v in result.items():            # _run_node 统一 apply
+    check_permission(k, node_name)      # B4 激活
+    setattr(ctx, k, v)
+```
+
+收益：测试零 mock、FIELD_WRITERS 自动生效、LangGraph 兼容。
+不动 pip install langgraph，不改现有 GraphEngine。详见 `docs/architecture-decision-records.md#adr-13`。
