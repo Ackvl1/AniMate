@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Graph 架构 vs Pipeline 架构</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #020617; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; padding: 40px; }
+.container { max-width: 1200px; margin: 0 auto; }
+h1 { font-size: 24px; margin-bottom: 8px; color: #22d3ee; }
+.subtitle { color: #94a3b8; font-size: 12px; margin-bottom: 40px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; }
+.card h2 { font-size: 14px; color: #22d3ee; margin-bottom: 20px; border-bottom: 1px solid #1e293b; padding-bottom: 12px; }
+.card.pipeline h2 { color: #34d399; }
+.graph-svg { width: 100%; }
+.label { font-size: 10px; fill: #94a3b8; }
+.node-text { font-size: 11px; font-weight: 600; fill: #e2e8f0; }
+.edge-text { font-size: 9px; fill: #64748b; }
+.arrow { fill: none; stroke-width: 1.5; marker-end: url(#arrowhead); }
+.arrow-dashed { fill: none; stroke-width: 1.5; stroke-dasharray: 5,4; marker-end: url(#arrowhead); }
+.legend { display: flex; gap: 24px; margin-top: 30px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 10px; color: #94a3b8; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.code-block { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 11px; line-height: 1.6; overflow-x: auto; }
+.code-block pre { margin: 0; }
+.code-comment { color: #64748b; }
+.code-keyword { color: #22d3ee; }
+.code-func { color: #a78bfa; }
+.code-string { color: #34d399; }
+.code-var { color: #fbbf24; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Graph 架构 vs Pipeline 架构</h1>
+  <div class="subtitle">两种 Agent 编排方式的对比 · 以 AniMate 角色扮演为例</div>
+
+  <div class="grid">
+    <!-- 左：Pipeline -->
+    <div class="card pipeline">
+      <h2>▌Pipeline / Skill 架构</h2>
+      <svg class="graph-svg" viewBox="0 0 460 520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow-pipe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399"/>
+          </marker>
+        </defs>
+
+        <!-- 节点 -->
+        <rect x="140" y="10" width="180" height="36" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="230" y="33" text-anchor="middle" class="node-text" fill="#22d3ee">PersonaSkill</text>
+
+        <rect x="140" y="86" width="180" height="36" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="230" y="109" text-anchor="middle" class="node-text" fill="#22d3ee">RetrievalSkill</text>
+
+        <rect x="140" y="162" width="180" height="36" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="230" y="185" text-anchor="middle" class="node-text" fill="#22d3ee">MemorySkill</text>
+
+        <rect x="140" y="238" width="180" height="36" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="230" y="260" text-anchor="middle" class="node-text" fill="#22d3ee">EmotionSkill</text>
+
+        <rect x="130" y="314" width="200" height="44" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="230" y="335" text-anchor="middle" class="node-text" fill="#34d399">LLM Call</text>
+        <text x="230" y="349" text-anchor="middle" class="label">一次调用，没有循环</text>
+
+        <rect x="140" y="398" width="180" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="230" y="421" text-anchor="middle" class="node-text" fill="#a78bfa">解析输出</text>
+
+        <!-- 箭头 -->
+        <line x1="230" y1="46" x2="230" y2="86" class="arrow" stroke="#34d399"/>
+        <line x1="230" y1="122" x2="230" y2="162" class="arrow" stroke="#34d399"/>
+        <line x1="230" y1="198" x2="230" y2="238" class="arrow" stroke="#34d399"/>
+        <line x1="230" y1="274" x2="230" y2="314" class="arrow" stroke="#34d399"/>
+        <line x1="230" y1="358" x2="230" y2="398" class="arrow" stroke="#34d399"/>
+
+        <!-- 边标注 -->
+        <text x="240" y="76" text-anchor="start" class="edge-text">ctx.system_prompt_parts</text>
+        <text x="240" y="152" text-anchor="start" class="edge-text">ctx.history</text>
+        <text x="240" y="228" text-anchor="start" class="edge-text">ctx.emotion</text>
+
+        <!-- 箭头头 def -->
+        <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399"/>
+        </marker>
+
+        <!-- 标注 -->
+        <text x="10" y="490" class="label">Skill 链 → 一次 LLM 调用 → 结束</text>
+      </svg>
+      <div class="code-block">
+        <pre><span class="code-comment"># Skill：一条直线，没有分支</span>
+<span class="code-keyword">for</span> skill <span class="code-keyword">in</span> skills:
+    skill.run(ctx)
+
+response = llm.chat(ctx.to_messages())
+parse(response)</pre>
+      </div>
+    </div>
+
+    <!-- 右：Graph -->
+    <div class="card">
+      <h2>▌Graph 架构（LangGraph 风格）</h2>
+      <svg class="graph-svg" viewBox="0 0 460 520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow-graph" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#22d3ee"/>
+          </marker>
+          <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb923c"/>
+          </marker>
+          <marker id="arrow-rose" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185"/>
+          </marker>
+        </defs>
+
+        <!-- 节点 -->
+        <!-- 入口 -->
+        <rect x="185" y="5" width="90" height="28" rx="14" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="230" y="23" text-anchor="middle" class="node-text" fill="#fb923c" font-size="10">用户输入</text>
+
+        <!-- 分支判断 -->
+        <rect x="140" y="68" width="180" height="36" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="230" y="91" text-anchor="middle" class="node-text" fill="#22d3ee">检索增强</text>
+
+        <!-- 条件分支 -->
+        <rect x="50" y="144" width="140" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="120" y="167" text-anchor="middle" class="node-text" fill="#a78bfa">情感分析</text>
+
+        <rect x="270" y="144" width="140" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="340" y="167" text-anchor="middle" class="node-text" fill="#a78bfa">意图识别</text>
+
+        <!-- 合并 -->
+        <rect x="140" y="220" width="180" height="36" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="230" y="243" text-anchor="middle" class="node-text" fill="#34d399">LLM 推理</text>
+
+        <!-- Tool calling 循环 -->
+        <rect x="50" y="296" width="140" height="36" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="120" y="319" text-anchor="middle" class="node-text" fill="#fbbf24">执行工具</text>
+
+        <!-- 条件判断 -->
+        <polygon points="320,314 370,296 420,314 370,332" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="370" y="319" text-anchor="middle" class="node-text" fill="#fb7185" font-size="9">继续?</text>
+
+        <!-- 输出节点 -->
+        <rect x="185" y="372" width="90" height="28" rx="14" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="230" y="390" text-anchor="middle" class="node-text" fill="#94a3b8" font-size="10">输出回复</text>
+
+        <!-- 箭头：入口→检索 -->
+        <line x1="230" y1="33" x2="230" y2="68" class="arrow" stroke="#22d3ee"/>
+
+        <!-- 箭头：检索→情感 -->
+        <line x1="180" y1="104" x2="120" y2="144" class="arrow" stroke="#22d3ee"/>
+        <text x="130" y="124" class="edge-text">非知识问题</text>
+
+        <!-- 箭头：检索→意图 -->
+        <line x1="300" y1="104" x2="340" y2="144" class="arrow" stroke="#22d3ee"/>
+        <text x="310" y="124" class="edge-text">知识问题</text>
+
+        <!-- 箭头：情感→LLM -->
+        <line x1="120" y1="180" x2="200" y2="220" class="arrow" stroke="#a78bfa"/>
+
+        <!-- 箭头：意图→LLM -->
+        <line x1="340" y1="180" x2="270" y2="220" class="arrow" stroke="#a78bfa"/>
+
+        <!-- 箭头：LLM→工具 -->
+        <line x1="180" y1="256" x2="120" y2="296" class="arrow" stroke="#34d399"/>
+        <text x="130" y="276" class="edge-text">需要工具</text>
+
+        <!-- 箭头：LLM→继续？ -->
+        <line x1="280" y1="238" x2="340" y2="305" class="arrow" stroke="#34d399"/>
+        <text x="300" y="258" class="edge-text">无工具</text>
+
+        <!-- 箭头：工具→继续？ -->
+        <line x1="190" y1="314" x2="320" y2="314" class="arrow" stroke="#fbbf24"/>
+
+        <!-- 箭头：继续？→LLM（循环回去） -->
+        <path d="M 370 296 Q 410 260 310 240" class="arrow-dashed" stroke="#fb7185"/>
+        <text x="380" y="255" class="edge-text" fill="#fb7185">继续</text>
+
+        <!-- 箭头：继续？→输出 -->
+        <line x1="320" y1="332" x2="240" y2="372" class="arrow" stroke="#fb7185"/>
+        <text x="310" y="355" class="edge-text" fill="#fb7185">完成</text>
+
+        <!-- 标注 -->
+        <text x="10" y="490" class="label">用户输入 → 并行分支 → LLM → 工具循环 → 条件终止</text>
+      </svg>
+
+      <div class="code-block">
+        <pre><span class="code-comment"># Graph：节点 + 条件边，可以循环/并行/分支</span>
+graph = Graph()
+graph.add_node(<span class="code-string">"analyze"</span>, analyze_emotion)
+graph.add_node(<span class="code-string">"retrieve"</span>, retrieve_knowledge)
+graph.add_node(<span class="code-string">"llm"</span>, call_llm)
+graph.add_node(<span class="code-string">"tools"</span>, execute_tools)
+
+<span class="code-comment"># 条件边：LLM 输出决定下一步</span>
+graph.add_conditional_edges(<span class="code-string">"llm"</span>, router_fn, {
+    <span class="code-string">"has_tools"</span>: <span class="code-string">"tools"</span>,   <span class="code-comment"># 有 tool call → 执行工具</span>
+    <span class="code-string">"finished"</span>: END,           <span class="code-comment"># 完成 → 输出</span>
+})
+
+<span class="code-comment"># 并行：情感分析和检索同时跑</span>
+graph.add_edge(<span class="code-string">"entry"</span>, [<span class="code-string">"analyze"</span>, <span class="code-string">"retrieve"</span>])</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 对比表 -->
+  <div class="card" style="margin-top: 40px;">
+    <h2>▌对比总结</h2>
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+      <tr style="border-bottom: 1px solid #1e293b;">
+        <th style="padding: 12px 16px; color: #22d3ee;"></th>
+        <th style="padding: 12px 16px; color: #34d399;">Pipeline / Skill</th>
+        <th style="padding: 12px 16px; color: #a78bfa;">Graph</th>
+      </tr>
+      <tr style="border-bottom: 1px solid #1e293b;">
+        <td style="padding: 10px 16px; color: #94a3b8;">拓扑</td>
+        <td style="padding: 10px 16px;">直线，一根筋</td>
+        <td style="padding: 10px 16px;">DAG或带环图，可分支/并行/循环</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #1e293b;">
+        <td style="padding: 10px 16px; color: #94a3b8;">状态</td>
+        <td style="padding: 10px 16px;">共享可变 Context</td>
+        <td style="padding: 10px 16px;">独立 State 对象，每个节点读写</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #1e293b;">
+        <td style="padding: 10px 16px; color: #94a3b8;">执行控制</td>
+        <td style="padding: 10px 16px;">写死在代码里（for循环）</td>
+        <td style="padding: 10px 16px;">用条件边/路由函数动态决策</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #1e293b;">
+        <td style="padding: 10px 16px; color: #94a3b8;">循环</td>
+        <td style="padding: 10px 16px;">手动写 while 循环（我们 tool calling 就这样）</td>
+        <td style="padding: 10px 16px;">条件边自循环，内置支持</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #1e293b;">
+        <td style="padding: 10px 16px; color: #94a3b8;">可观测性</td>
+        <td style="padding: 10px 16px;">只能加日志自己看</td>
+        <td style="padding: 10px 16px;">LangSmith 等原生追踪每个节点</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 16px; color: #94a3b8;">适合场景</td>
+        <td style="padding: 10px 16px;">固定流程，角色扮演，对话</td>
+        <td style="padding: 10px 16px;">复杂推理，多步决策，工具编排</td>
+      </tr>
+    </table>
+  </div>
+</div>
+</body>
+</html>

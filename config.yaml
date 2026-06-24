@@ -1,0 +1,55 @@
+# AniMate Provider 目录
+# 静态数据：可用的 LLM 和 Embedding 厂商
+# API Keys 在 .env，不在此文件
+
+llm:
+  deepseek:
+    name: DeepSeek
+    base_url: https://api.deepseek.com/v1
+    api_key_env: OPENAI_CHAT_API_KEY
+    models:
+      - deepseek-v4-flash
+      - deepseek-v4-pro
+    default: deepseek-v4-flash
+
+  zhipu:
+    name: 智谱 GLM
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    api_key_env: ZAI_API_KEY
+    models:
+      - glm-4.7
+      - glm-4.5
+      - glm-4.5-air
+      - glm-4v-flash
+    default: glm-4.7
+
+  qwen:
+    name: 阿里通义 Qwen
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key_env: QWEN_API_KEY
+    models:
+      - qwen-3
+      - qwen-2.5-72b-instruct
+      - qwen-2.5-32b-instruct
+    default: qwen-3
+
+embedding:
+  dashscope:
+    name: 阿里 DashScope
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key_env: OPENAI_EMBEDDING_API_KEY
+    models:
+      - text-embedding-v4
+    default: text-embedding-v4
+
+compress:
+  threshold: 0.70
+  head_rounds: 5
+  tail_rounds: 10
+  compact_reserve: 30000
+  max_failures: 3
+  model_limit: 1000000
+
+log:
+  max_db_size_mb: 50
+  max_age_days: 30

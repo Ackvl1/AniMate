@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReAct 架构 · 完整介绍</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #020617; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; padding: 30px; }
+.container { max-width: 960px; margin: 0 auto; }
+h1 { font-size: 28px; color: #22d3ee; margin-bottom: 4px; }
+.subtitle { color: #64748b; font-size: 12px; margin-bottom: 32px; }
+
+.section { margin-bottom: 32px; }
+.section h2 { font-size: 15px; color: #22d3ee; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #1e293b; }
+.section h3 { font-size: 12px; color: #a78bfa; margin: 14px 0 6px; }
+
+p { font-size: 11px; line-height: 1.9; color: #cbd5e1; margin-bottom: 10px; }
+
+.card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.card.dark { background: #020617; }
+
+.code { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; font-size: 11px; line-height: 1.7; overflow-x: auto; margin: 10px 0; }
+.code pre { margin: 0; white-space: pre-wrap; }
+
+.cc { color: #64748b; }
+.kw { color: #22d3ee; }
+.fn { color: #a78bfb; }
+.st { color: #34d399; }
+.vr { color: #fbbf24; }
+.rs { color: #fb7185; }
+.thought { color: #a78bfa; font-weight: 600; }
+.action { color: #fb923c; font-weight: 600; }
+.obs { color: #22d3ee; font-weight: 600; }
+.answer { color: #34d399; font-weight: 600; }
+
+.diagram-svg { width: 100%; max-width: 800px; display: block; margin: 16px auto; }
+.node-text { font-size: 10px; font-weight: 600; fill: #e2e8f0; }
+.node-label { font-size: 8px; fill: #94a3b8; }
+.edge-text { font-size: 7px; fill: #64748b; }
+.tip { color: #fbbf24; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+
+.tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.tag { padding: 4px 10px; border-radius: 4px; font-size: 9px; font-weight: 600; }
+.tag.cyan { background: rgba(34,211,238,0.15); color: #22d3ee; border: 1px solid rgba(34,211,238,0.3); }
+.tag.purple { background: rgba(168,139,250,0.15); color: #a78bfa; border: 1px solid rgba(168,139,250,0.3); }
+.tag.orange { background: rgba(251,146,60,0.15); color: #fb923c; border: 1px solid rgba(251,146,60,0.3); }
+.tag.green { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+
+ul { list-style: none; padding: 0; }
+li { font-size: 11px; line-height: 1.8; color: #cbd5e1; padding: 4px 0 4px 16px; position: relative; }
+li::before { content: "▸"; position: absolute; left: 0; color: #22d3ee; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>ReAct</h1>
+<div class="subtitle">Reasoning + Acting · arXiv 2210.03629 · Google / Princeton 2022</div>
+
+<!-- 1. 背景 -->
+<div class="section">
+  <h2>▌1. 动机：为什么要 ReAct？</h2>
+
+  <div class="grid2">
+    <div class="card">
+      <h3 style="color:#fb7185;">❌ 纯推理（Chain-of-Thought）</h3>
+      <div class="code">
+<pre><span class="cc"># CoT: 只在脑子里推理</span>
+用户: 北京和上海哪个远？
+
+Thought: 北京到上海约1200km...
+         高铁约4.5小时...
+Answer: 北京到上海距离...</pre>
+      </div>
+      <p style="font-size:10px;">LLM 凭训练数据推理<br>无法获取实时/外部信息<br>数据过时了就瞎编</p>
+    </div>
+
+    <div class="card">
+      <h3 style="color:#fb7185;">❌ 纯行动（Tool-Use Only）</h3>
+      <div class="code">
+<pre><span class="cc"># Only Act: 调用工具但缺乏推理</span>
+用户: 帮我订去北京的票
+
+Action: search_flights()
+Observation: [国航CA1234...]
+Action: book_ticket(...)  ← 没检查日期就直接订了！
+Observation: 订票失败</pre>
+      </div>
+      <p style="font-size:10px;">工具调了一堆<br>但缺乏推理来决定"该调什么"和"结果什么意思"<br>容易瞎操作</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-color: rgba(34,211,238,0.3);">
+    <p>
+      <strong style="color:#22d3ee;">ReAct 的核心理念：</strong>推理和行动交替进行，互相促进。<br>
+      Thought 指导 Action 该调什么，Observation 反馈给 Thought 调整下一步。
+    </p>
+  </div>
+</div>
+
+<!-- 2. 核心循环 -->
+<div class="section">
+  <h2>▌2. 核心循环</h2>
+
+  <svg class="diagram-svg" viewBox="0 0 750 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#22d3ee"/></marker>
+      <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#fb7185"/></marker>
+    </defs>
+
+    <rect x="310" y="0" width="140" height="32" rx="16" fill="rgba(251,146,60,0.12)" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="380" y="22" text-anchor="middle" class="node-text" fill="#fb923c" font-size="9">用户输入</text>
+    <line x1="380" y1="32" x2="380" y2="48" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="290" y="52" width="180" height="40" rx="8" fill="rgba(168,139,250,0.15)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="380" y="71" text-anchor="middle" class="node-text" fill="#a78bfa">Thought 推理</text>
+    <text x="380" y="86" text-anchor="middle" class="node-label">分析当前状态，决定下一步</text>
+
+    <path d="M380 92 L380 108" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="290" y="112" width="180" height="40" rx="8" fill="rgba(251,146,60,0.15)" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="380" y="131" text-anchor="middle" class="node-text" fill="#fb923c">Action 行动</text>
+    <text x="380" y="146" text-anchor="middle" class="node-label">调用工具 / API / 搜索</text>
+
+    <path d="M380 152 L380 168" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="290" y="172" width="180" height="40" rx="8" fill="rgba(34,211,238,0.12)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="380" y="191" text-anchor="middle" class="node-text" fill="#22d3ee">Observation 观察</text>
+    <text x="380" y="206" text-anchor="middle" class="node-label">获取工具返回的结果</text>
+
+    <!-- 继续循环 -->
+    <path d="M470 192 Q540 192 540 110 Q540 72 470 72" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#b)"/>
+    <text x="555" y="150" class="edge-text" fill="#fb7185">循环：进一步 Thought</text>
+
+    <!-- 最终答案 -->
+    <path d="M470 72 Q540 72 540 35 Q540 20 470 20" fill="none" stroke="#34d399" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#a)"/>
+    <text x="560" y="30" class="edge-text" fill="#34d399">Answer（完成时退出）</text>
+
+    <text x="20" y="50" class="edge-text">Thought: 需要查实时天气</text>
+    <text x="20" y="68" class="edge-text">Action: get_weather("北京")</text>
+    <text x="20" y="86" class="edge-text">Obs: {temp: 28}</text>
+    <text x="20" y="104" class="edge-text">Thought: 28度，够热了，推荐短袖</text>
+    <text x="20" y="122" class="edge-text">Action: None (已够信息)</text>
+    <text x="20" y="140" class="edge-text">Answer: 建议穿短袖...</text>
+  </svg>
+
+  <div class="code" style="margin-top:4px;">
+<pre><span class="cc"># 每次 LLM 调用的输出格式</span>
+<span class="thought">Thought:</span> 我需要查询北京的实时天气数据，然后给出穿衣建议。
+<span class="action">Action:</span> get_weather("Beijing")
+
+<span class="cc"># 系统执行 Action，拿到结果后拼到对话里</span>
+<span class="obs">Observation:</span> {"temperature": 28, "condition": "sunny"}
+
+<span class="cc"># LLM 再次被调用（带上 Obs），输出下一步</span>
+<span class="thought">Thought:</span> 北京28度晴天，适合穿短袖。信息够了。
+<span class="answer">Answer:</span> 北京今天28度，晴天，建议穿短袖出门。</pre>
+  </div>
+</div>
+
+<!-- 3. 完整例子 -->
+<div class="section">
+  <h2>▌3. 完整例子：多步推理+工具</h2>
+
+  <div class="card">
+    <h3 style="color:#fbbf24;">问题：谁执导了《奥本海默》的导演所执导的最早电影？</h3>
+    <p style="color:#64748b; font-size:10px; margin-top:4px;">经典 HotpotQA 风格——需要多跳推理</p>
+  </div>
+
+  <div class="code">
+<pre><span class="thought">Thought 1:</span> 我需要先找到《奥本海默》的导演是谁。
+
+<span class="action">Action 1:</span> Search["奥本海默 导演"]
+
+<span class="obs">Observation 1:</span> 克里斯托弗·诺兰（Christopher Nolan）
+
+<span class="thought">Thought 2:</span> 导演是克里斯托弗·诺兰。现在我需要找到诺兰执导的最早电影。
+
+<span class="action">Action 2:</span> Search["克里斯托弗·诺兰 最早的电影"]
+
+<span class="obs">Observation 2:</span> 克里斯托弗·诺兰的第一部电影是《追随》（Following），1998年上映。
+
+<span class="thought">Thought 3:</span> 诺兰最早执导的电影是《追随》（1998）。可以给出最终答案了。
+
+<span class="answer">Answer:</span> 克里斯托弗·诺兰最早执导的电影是《追随》（Following），1998年上映。</pre>
+  </div>
+
+  <p style="color:#64748b; font-size:10px;">
+    关键：<strong style="color:#22d3ee;">Thought 2</strong> 基于 <strong style="color:#fb923c;">Action 1</strong> 的结果（诺兰）决定下一步搜索方向。如果没有 Thought 环节，LLM 可能直接瞎猜诺兰最早的电影。
+  </p>
+</div>
+
+<!-- 4. 论文细节 -->
+<div class="section">
+  <h2>▌4. 论文中的重要发现</h2>
+
+  <div class="grid2">
+    <div class="card">
+      <h3 style="color:#a78bfa;">🔥 推理+行动协同</h3>
+      <ul>
+        <li>Thought 帮助 Action 不跑偏（推理指引行动方向）</li>
+        <li>Observation 帮助 Thought 修正（事实纠正推理错误）</li>
+        <li>比纯 Chain-of-Thought 和纯 Tool-Use 都好</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:#a78bfa;">🔥 可解释性</h3>
+      <ul>
+        <li>Thought 是自然语言，人能看懂"它为什么这么干"</li>
+        <li>出错了可以定位：是 Thought 推错了，还是 Action 调错了</li>
+        <li>这被称为"白盒 Agent"的核心特性</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:#a78bfa;">🔥 应对幻觉</h3>
+      <ul>
+        <li>Action + Observation 让 LLM 基于事实行动</li>
+        <li>而不是凭训练数据"背诵"答案</li>
+        <li>尤其是需要实时数据、知识库查询的场景</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:#a78bfa;">🔥 行动空间任意</h3>
+      <ul>
+        <li>论文里用了 Search / Lookup / Finish 三种 Action</li>
+        <li>实际可以扩展为任意工具：API调用、数据库、计算器...</li>
+        <li>通过 LLM 的 function calling 原生支持</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 5. 技术实现 -->
+<div class="section">
+  <h2>▌5. 怎么实现一个 ReAct Agent</h2>
+
+  <div class="card">
+    <p style="margin-bottom:12px;">核心就是：<strong style="color:#fbbf24;">在 system prompt 里告诉 LLM 输出格式 + 用 while 循环喂 Obs 回 LLM</strong></p>
+  </div>
+
+  <div class="code">
+<pre><span class="cc"># system prompt 关键部分</span>
+用以下格式回复：
+
+Thought: 你当前的推理
+Action: 工具名称(参数)
+<span class="cc">（或者如果已经足够了）</span>
+Answer: 你的最终答案
+
+<span class="cc"># Agent 循环伪代码</span>
+messages = [system_prompt, user_input]
+
+<span class="kw">while</span> <span class="kw">True</span>:
+    response = llm.chat(messages)
+    
+    <span class="kw">if</span> response 包含 <span class="st">"Action:"</span>:
+        tool_name, args = parse_action(response)
+        result = execute_tool(tool_name, args)
+
+        messages.append(response)              <span class="cc"># 加入 Action</span>
+        messages.append({<span class="st">"role"</span>: <span class="st">"user"</span>,        <span class="cc"># 加入 Observation</span>
+                         <span class="st">"content"</span>: f<span class="st">"Observation: {result}"</span>})
+        <span class="cc"># 继续循环，LLM 看到 Obs 后继续 Thought</span>
+    
+    <span class="kw">elif</span> response 包含 <span class="st">"Answer:"</span>:
+        <span class="kw">return</span> parse_answer(response)  <span class="cc"># 结束</span></pre>
+  </div>
+
+  <p style="font-size:10px; color:#64748b; margin-top:8px;">
+    ↑ 这就是 ReAct 的全部实现。不需要框架，一个 while 循环就够了。
+  </p>
+</div>
+
+<!-- 6. 与 Function Calling 的关系 -->
+<div class="section">
+  <h2>▌6. ReAct vs Function Calling（Tool Calling）</h2>
+
+  <div class="grid2">
+    <div class="card">
+      <h3 style="color:#22d3ee;">LLM Function Calling</h3>
+      <p>LLM API 原生特性。模型输出结构化的 tool_call 请求，由调用方执行。</p>
+      <div class="code" style="margin-top:8px;">
+<pre>{
+  "tool_calls": [{
+    "name": "get_weather",
+    "args": {"city": "北京"}
+  }]
+}</pre>
+      </div>
+      <p style="font-size:10px; color:#64748b;">这是底层能力，格式固定</p>
+    </div>
+    <div class="card">
+      <h3 style="color:#fbbf24;">ReAct</h3>
+      <p>上面的架构模式。LLM 用自然语言输出 Thought + Action。</p>
+      <div class="code" style="margin-top:8px;">
+<pre>Thought: 天气会影响穿衣，先查天气
+Action: get_weather("北京")</pre>
+      </div>
+      <p style="font-size:10px; color:#64748b;">这是上层架构，格式灵活</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-color: rgba(52,211,153,0.3);">
+    <p>
+      <strong style="color:#34d399;">现实中的融合：</strong>现代 Agent 框架通常把 ReAct 的 Thought 用 LLM 的 function calling 来实现——Thought 隐含在 LLM 内部，Action 通过 tool_calls 结构化输出。这就是你的实现做的事。
+    </p>
+  </div>
+</div>
+
+<!-- 7. 主流框架 -->
+<div class="section">
+  <h2>▌7. 谁在用 ReAct</h2>
+
+  <div class="card">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; font-size: 11px;">
+      <div>
+        <strong style="color:#22d3ee;">LangChain</strong>
+        <p style="font-size:10px; color:#64748b; margin-top:4px;">Agent 的默认实现就是 ReAct</p>
+      </div>
+      <div>
+        <strong style="color:#22d3ee;">OpenAI Agents SDK</strong>
+        <p style="font-size:10px; color:#64748b; margin-top:4px;">底层用 ReAct 循环做 tool calling</p>
+      </div>
+      <div>
+        <strong style="color:#22d3ee;">AutoGPT</strong>
+        <p style="font-size:10px; color:#64748b; margin-top:4px;">Thought → Action → 循环</p>
+      </div>
+      <div>
+        <strong style="color:#22d3ee;">Claude Agent</strong>
+        <p style="font-size:10px; color:#64748b; margin-top:4px;">tool_use 循环 ≈ ReAct 的 Action+Obs</p>
+      </div>
+      <div>
+        <strong style="color:#22d3ee;">AniMate（你的）</strong>
+        <p style="font-size:10px; color:#64748b; margin-top:4px;">Hook + Tool-Use Loop 是 ReAct 的裁剪版</p>
+      </div>
+      <div>
+        <strong style="color:#22d3ee;">几乎所有 Agent</strong>
+        <p style="font-size:10px; color:#64748b; margin-top:4px;">2025-2026，ReAct 是最广泛采用的 Agent 范式</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 8. 一句话 -->
+<div class="section">
+  <div style="background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:24px; text-align:center;">
+    <p style="font-size:13px; line-height:2.2;">
+      <strong style="color:#22d3ee;">ReAct</strong> = LLM 在每轮输出中说<br>
+      "<span style="color:#a78bfa;">我想</span> → <span style="color:#fb923c;">我做</span> → <span style="color:#22d3ee;">我看到</span> → <span style="color:#a78bfa;">我再想</span>"<br>
+      <span style="font-size:10px; color:#64748b;">直到我说"<span style="color:#34d399;">答案在这</span>"为止</span>
+    </p>
+  </div>
+
+  <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+    <span class="tag purple">Google 2022 论文</span>
+    <span class="tag cyan">最主流的 Agent 架构</span>
+    <span class="tag orange">Thought + Action 交替</span>
+    <span class="tag green">可解释可 Debug</span>
+  </div>
+</div>
+
+<!-- 附：论文信息 -->
+<div style="background: rgba(168,139,250,0.06); border: 1px solid rgba(168,139,250,0.15); border-radius: 8px; padding: 14px 18px;">
+  <p style="font-size:10px; color:#64748b;">
+    <strong style="color:#a78bfa;">论文：</strong>ReAct: Synergizing Reasoning and Acting in Language Models<br>
+    <strong style="color:#a78bfa;">作者：</strong>Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao<br>
+    <strong style="color:#a78bfa;">时间：</strong>2022 年 10 月<br>
+    <strong style="color:#a78bfa;">链接：</strong><a href="https://arxiv.org/abs/2210.03629" style="color:#22d3ee;">arxiv.org/abs/2210.03629</a>
+  </p>
+</div>
+
+</div>
+</body>
+</html>

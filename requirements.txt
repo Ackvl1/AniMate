@@ -1,0 +1,11 @@
+openai
+dashscope
+numpy
+python-dotenv
+jieba
+pyyaml
+ddgs
+requests
+beautifulsoup4
+feedparser
+regex
