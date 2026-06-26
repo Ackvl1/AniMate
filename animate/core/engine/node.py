@@ -18,6 +18,7 @@ class NodeResult:
     """Node.run() 的输出。"""
     next_node: str | None = None
     data: dict[str, Any] = field(default_factory=dict)
+    diff: dict[str, Any] | None = None  # Phase 6: 状态差异
 
 
 @dataclass(init=False)

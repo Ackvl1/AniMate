@@ -189,7 +189,7 @@ class TestB11MarkerClearing:
         result = await node.run(ctx, AsyncMock())
 
         assert result.next_node == "react"
-        assert ctx.extras.get("retry_feedback_injected") is None  # 标记已清除
+        assert result.diff.get("retry_feedback_injected") is None  # 标记已清除
 
     @pytest.mark.asyncio
     async def test_reflect_preserves_marker_on_before_routing(self):

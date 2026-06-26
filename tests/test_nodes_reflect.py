@@ -47,7 +47,7 @@ async def test_bad_quality_returns_react():
     ctx.final_text = "本小姐很好"
     result = await node.run(ctx, AsyncMock())
     assert result.next_node == "react"
-    assert "语气不对" in ctx.feedback
+    assert "语气不对" in result.diff["feedback"]
 
 
 @pytest.mark.asyncio

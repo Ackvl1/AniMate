@@ -60,7 +60,7 @@ class TestAnalysisScratchpad:
         ctx.final_text = "哦"
         result = await node.run(ctx, AsyncMock())
         assert result.next_node == "react"
-        assert "语气" in ctx.feedback
+        assert "语气" in result.diff["feedback"]
 
     @pytest.mark.asyncio
     async def test_fallback_parsing_without_analysis(self):

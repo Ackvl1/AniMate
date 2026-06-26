@@ -30,11 +30,13 @@ class MemoryNode(Node):
         await emit("node.start", name="memory")
         try:
             facts = self._provider.prefetch(ctx.user_input, limit=5)
-            if facts:
-                ctx.extras["memory_facts"] = facts
         except Exception as e:
             logger.warning("[%s] MemoryNode prefetch failed: %s", ctx.trace_id, e)
             facts = []
 
         await emit("node.done", name="memory", count=len(facts))
-        return NodeResult(next_node="system_prompt", data={"facts": facts})
+        return NodeResult(
+            next_node="system_prompt",
+            data={"facts": facts},
+            diff={"memory_facts": facts},  # Phase 6: 返回 diff
+        )

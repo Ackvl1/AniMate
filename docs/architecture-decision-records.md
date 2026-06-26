@@ -1,7 +1,7 @@
 # AniMate 架构决策记录 (ADR)
 
 > 记录关键架构决策及其背景、替代方案、代价。
-> 更新至 Phase 5（2026-06）。
+> 更新至 Phase 6（2026-06-26）。
 
 ---
 
@@ -231,11 +231,51 @@
 node.run(ctx, emit)          # 节点内部 ctx.messages = ...
 
 # Phase 6
-result = await node.run(inputs, emit)   # inputs = ctx 只读快照
-for k, v in result.items():            # _run_node 统一 apply
-    check_permission(k, node_name)      # B4 激活
-    setattr(ctx, k, v)
+result = await node.run(ctx, emit)   # 返回 NodeResult(diff={...})
+if result.diff:
+    await self._apply_diff(ctx, result.diff, name, emit)  # 引擎统一 apply
 ```
 
 收益：测试零 mock、FIELD_WRITERS 自动生效、LangGraph 兼容。
-不动 pip install langgraph，不改现有 GraphEngine。详见 `docs/architecture-decision-records.md#adr-13`。
+不动 pip install langgraph，不改现有 GraphEngine。详见 `docs/phase6-return-diff-plan.md`。
+
+---
+
+## ADR-14: Return-Diff 架构重构
+
+**状态**: ✅ Phase 6.1 完成，Phase 6.2 进行中 (2026-06-26)
+**背景**: 节点直接写 ctx 导致：(1) 测试需要 mock ctx；(2) FIELD_WRITERS 声明但未强制；(3) 节点间隐式耦合。  
+**决策**: 采用 Return-Diff 模式：
+
+1. **NodeResult.diff**: 新增 `diff: dict[str, Any] | None` 字段
+2. **GraphEngine._apply_diff**: 引擎统一 apply diff，校验 FIELD_WRITERS
+3. **RunContext.snapshot/restore**: 支持 checkpoint 快照
+4. **DiffHistory**: SQLite 持久化节点 diff 记录
+
+**替代方案对比**:
+
+| 方案 | 优点 | 缺点 |
+|------|------|------|
+| **Return-Diff (选择)** | 零 mock 测试、FIELDWRITERS 自动生效、无新依赖 | 节点需重构、ReactNode 流式复杂 |
+| 直接写 ctx + 装饰器 | 改动最小 | 测试仍需 mock、强制力弱 |
+| LangGraph | 成熟生态 | 重依赖、API 不透明、与现有架构冲突 |
+
+**代价**: 所有节点需重构（8 个节点），但测试覆盖从 416 → 491（+75），架构清晰度大幅提升。
+
+### 已完成组件
+
+| 组件 | 文件 | 状态 |
+|------|------|------|
+| NodeResult.diff | `node.py` | ✅ |
+| RunContext.snapshot/restore | `context.py` | ✅ |
+| FIELD_WRITERS 完善 | `context.py` | ✅ |
+| GraphEngine._apply_diff | `graph.py` | ✅ |
+| DiffHistory | `diff_history.py` | ✅ |
+| MemoryNode | `memory_node.py` | ✅ |
+| AfterNode | `after.py` | ✅ |
+| ReflectNode | `reflect.py` | ✅ |
+| RAGVectorNode | `rag_vector.py` | 待迁移 |
+| RAGKeywordNode | `rag_keyword.py` | 待迁移 |
+| SystemPromptNode | `system_prompt.py` | 待迁移 |
+| MergeNode | `merge.py` | 待迁移 |
+| ReactNode | `react.py` | 待迁移 |

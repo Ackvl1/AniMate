@@ -39,44 +39,46 @@ class AfterNode(Node):
         await emit("node.start", name="after")
         text = ctx.raw_text.strip()
         if not text:
-            ctx.final_text = ""
             await emit("node.done", name="after", emotion="", gesture=None, length=0)
-            return NodeResult(next_node="reflect")
+            return NodeResult(next_node="reflect", diff={"final_text": "", "emotion": "calm", "gesture": None})
 
         # 备份清理：如果 LLM 没按 inline marker 格式输出，raw_text 可能含残留标记
         from animate.core.agent.nodes.marker_streamer import TextMarkerStreamer
         cleaned = TextMarkerStreamer.strip_markers(text)
-        ctx.final_text = cleaned
 
         # 校验 emotion
-        if ctx.emotion and ctx.emotion not in self.KNOWN_EMOTIONS:
-            logger.info("unknown emotion '%s', fallback to calm", ctx.emotion)
-            ctx.emotion = "calm"
-
-        if not ctx.emotion:
-            ctx.emotion = "calm"
+        emotion = ctx.emotion
+        if emotion and emotion not in self.KNOWN_EMOTIONS:
+            logger.info("unknown emotion '%s', fallback to calm", emotion)
+            emotion = "calm"
+        if not emotion:
+            emotion = "calm"
 
         # 校验 gesture
-        if ctx.gesture and ctx.gesture not in self.KNOWN_GESTURES:
-            logger.info("unknown gesture '%s', removed", ctx.gesture)
-            ctx.gesture = ""
+        gesture = ctx.gesture
+        if gesture and gesture not in self.KNOWN_GESTURES:
+            logger.info("unknown gesture '%s', removed", gesture)
+            gesture = ""
 
         # 复合规则：emotion 对 gesture 的限制
-        if ctx.gesture:
-            allowed = self.EMOTION_GESTURE_RULES.get(ctx.emotion)
-            if allowed and ctx.gesture not in allowed:
+        if gesture:
+            allowed = self.EMOTION_GESTURE_RULES.get(emotion)
+            if allowed and gesture not in allowed:
                 fallback = list(allowed)[0]
                 logger.info("gesture '%s' not allowed for emotion '%s', corrected to '%s'",
-                            ctx.gesture, ctx.emotion, fallback)
-                ctx.gesture = fallback
+                            gesture, emotion, fallback)
+                gesture = fallback
 
         # 设置最终的 emotion/gesture 为空时的默认值
-        if ctx.gesture == "":
-            ctx.gesture = None
+        if gesture == "":
+            gesture = None
 
         logger.info("[%s] after validation: emotion=%s gesture=%s %d chars",
-                    ctx.trace_id, ctx.emotion, ctx.gesture, len(ctx.final_text))
+                    ctx.trace_id, emotion, gesture, len(cleaned))
         await emit("node.done", name="after",
-                   emotion=ctx.emotion, gesture=ctx.gesture, length=len(ctx.final_text))
+                   emotion=emotion, gesture=gesture, length=len(cleaned))
 
-        return NodeResult(next_node="reflect")
+        return NodeResult(
+            next_node="reflect",
+            diff={"final_text": cleaned, "emotion": emotion, "gesture": gesture},
+        )

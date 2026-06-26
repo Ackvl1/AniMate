@@ -54,15 +54,19 @@ class ReflectNode(Node):
             await emit("node.done", name="reflect", level=-1, feedback="skipped")
             return NodeResult()
 
+        # Phase 6: 读取 ctx 值到局部变量
+        llm_call_count = ctx.llm_call_count
+        accumulated_usage = ctx.accumulated_usage
+
         try:
             eval_messages = [
                 {"role": "system", "content": self.EVALUATE_PROMPT},
                 {"role": "user", "content": f"用户问题：{ctx.user_input}\n\n当前回复：{ctx.final_text}"},
             ]
             result = self._llm.chat(eval_messages)
-            ctx.llm_call_count += 1
+            llm_call_count += 1
             if result.total_tokens:
-                ctx.accumulated_usage += result.total_tokens
+                accumulated_usage += result.total_tokens
 
             raw = result.content.strip()
             # 提取 analysis（如果有的话）
@@ -91,19 +95,27 @@ class ReflectNode(Node):
             await emit("node.done", name="reflect", level=level, feedback=feedback[:80])
 
             if level >= 4:
-                ctx.feedback = feedback
-                ctx.is_retry = True
-                return NodeResult(next_node="before")
+                return NodeResult(
+                    next_node="before",
+                    diff={"feedback": feedback, "is_retry": True,
+                          "llm_call_count": llm_call_count, "accumulated_usage": accumulated_usage},
+                )
 
             if level >= 2:
-                ctx.feedback = feedback
-                ctx.is_retry = True
-                ctx.extras.pop("retry_feedback_injected", None)  # 清残留标记
-                return NodeResult(next_node="react")
+                return NodeResult(
+                    next_node="react",
+                    diff={"feedback": feedback, "is_retry": True,
+                          "retry_feedback_injected": None,
+                          "llm_call_count": llm_call_count, "accumulated_usage": accumulated_usage},
+                )
 
-            return NodeResult()
+            return NodeResult(
+                diff={"llm_call_count": llm_call_count, "accumulated_usage": accumulated_usage},
+            )
 
         except Exception as e:
             logger.warning("[%s] reflect failed: %s", ctx.trace_id, e)
             await emit("node.done", name="reflect", level=-1, feedback="error")
-            return NodeResult()
+            return NodeResult(
+                diff={"llm_call_count": llm_call_count, "accumulated_usage": accumulated_usage},
+            )

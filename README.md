@@ -4,7 +4,7 @@
 >
 > 当前角色：BanG Dream! 丰川祥子（Oblivionis）
 >
-> 源码量：~5,000 行（animate/core/）· 测试：416 个，全部通过
+> 源码量：~5,200 行（animate/core/）· 测试：491 个，全部通过
 
 ---
 
@@ -64,9 +64,10 @@ AniMate/
 │       ├── errors.py         # AgentError / LLMError / ToolError
 │       ├── paths.py          # 数据路径中央配置
 │       ├── engine/           # ★ BSP 图引擎
-│       │   ├── graph.py      # Graph + GraphEngine（BSP 调度 + 冲突检测）
-│       │   ├── node.py       # Node ABC（async + emit + NodeResult）
-│       │   └── context.py    # RunContext + RunServices（强类型）
+│       │   ├── graph.py      # Graph + GraphEngine（BSP 调度 + 冲突检测 + _apply_diff）
+│       │   ├── node.py       # Node ABC（async + emit + NodeResult + diff）
+│       │   ├── context.py    # RunContext + RunServices + FIELD_WRITERS（强类型）
+│       │   └── diff_history.py # DiffHistory（SQLite 持久化）
 │       ├── agent/            # ★ Agent 框架
 │       │   ├── agent.py      # Agent 门面 + compact/resume + create_default
 │       │   ├── logging.py    # PhaseEventLogger（多计时器 + batch flush）
@@ -188,6 +189,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | 特性 | 实现 |
 |------|------|
 | **BSP 调度** | 超级步内无冲突节点全并行，冲突节点延迟一步 |
+| **Return-Diff** | 节点返回 diff，引擎统一 apply + FIELD_WRITERS 校验 |
 | **流式输出** | `asyncio.Queue` 桥接 emit 回调和 `yield`，char-by-char |
 | **StreamingToolExecutor** | 只读工具在 LLM 流失时后台预执行，与聊天文本并行 |
 | **HITL 权限** | 非只读工具（execute_python, write_file）首次需用户批准，session 内记住 |
@@ -200,6 +202,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | **信任分系统** | regex 0.3 / LLM 0.7 / 检索晋升 capped 0.2 / 冲突 max 合并 |
 | **Session Rotation** | 压缩时冻结旧 session，创建新 session + 父指针 |
 | **日志轮转** | 按大小（50MB）+ 按时间（30 天）自动归档 |
+| **DiffHistory** | SQLite 持久化节点 diff，支持时间范围查询 + 自动清理 |
 | **代码执行** | subprocess 隔离，可超时杀死死循环 |
 | **ReDoS 防护** | `regex` 库 + 2 秒 timeout |
 
@@ -207,7 +210,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 
 ## 测试覆盖
 
-416 个测试，全部通过（38s）
+491 个测试，全部通过（86s）
 
 ### 测试模块
 
@@ -237,6 +240,13 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | Token Counter | test_token_counter.py | 11 |
 | Tool Args Snip | test_tool_args_snip.py | 4 |
 | CLI Commands | test_cli_commands.py | — |
+| **Phase 6: NodeResult diff** | test_node_result_diff.py | 5 |
+| **Phase 6: RunContext snapshot** | test_run_context_snapshot.py | 8 |
+| **Phase 6: Engine apply_diff** | test_engine_apply_diff.py | 8 |
+| **Phase 6: DiffHistory** | test_diff_history.py | 7 |
+| **Phase 6: MemoryNode diff** | test_node_memory_diff.py | 5 |
+| **Phase 6: AfterNode diff** | test_node_after_diff.py | 8 |
+| **Phase 6: ReflectNode diff** | test_node_reflect_diff.py | 9 |
 
 ---
 
@@ -265,6 +275,12 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 ### Phase 5: CLI 完整接入 + 日志整改 + 信任分
 - /compact /resume CLI + 多计时器日志 + 信任分 + 日志轮转 + 杂项修复
 - **测试**: 416 → 全部通过
+
+### Phase 6: Return-Diff 架构重构
+- NodeResult.diff + RunContext.snapshot/restore + GraphEngine._apply_diff
+- FIELD_WRITERS 强制校验 + DiffHistory SQLite 持久化
+- MemoryNode/AfterNode/ReflectNode 迁移完成
+- **测试**: 491 → 全部通过（+75）
 
 ---
 
@@ -324,9 +340,10 @@ QWEN_API_KEY=sk-xxx...        # 阿里通义 Qwen 可选
 | 配置 | YAML（config.yaml 惰性加载） |
 | 日志 | SQLite 7 张表（ChatLogDB）+ 多计时器事件体系 |
 | 记忆 | SQLite + FTS5（MemoryStore）+ 信任评分 |
-| 图引擎 | BSP 调度 + 异步生成器 + 冲突检测 |
+| 图引擎 | BSP 调度 + 异步生成器 + 冲突检测 + Return-Diff |
 | 流式 | char-by-char replay + inline (emotion,gesture) marker |
-| 测试 | pytest（416 tests） |
+| DiffHistory | SQLite 持久化节点 diff + 时间范围查询 |
+| 测试 | pytest（491 tests） |
 | MCP | stdio 协议（filesystem / memory / github / brave-search） |
 
 ---

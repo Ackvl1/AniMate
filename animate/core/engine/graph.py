@@ -6,12 +6,17 @@ import asyncio
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine
-
 from animate.core.engine.node import Node, NodeResult
-from animate.core.engine.context import RunContext
+from animate.core.engine.context import RunContext, FIELD_WRITERS
 
 # EventEmitter 类型
 EventEmitter = Callable[..., Coroutine | None]
+
+# extras 字段列表（引擎层路由到 ctx.extras）
+EXTRAS_FIELDS = {
+    "rag_vector_chunks", "rag_keyword_chunks",
+    "system_parts", "memory_facts", "retry_feedback_injected",
+}
 
 
 async def _noop_emit(*args, **kwargs):
@@ -147,6 +152,32 @@ class GraphEngine:
         _emit = emit if emit is not None else _noop_emit
         result = await node.run(ctx, _emit)
         self._node_results[name] = result
+        
+        # Phase 6: apply diff
+        if result.diff:
+            await self._apply_diff(ctx, result.diff, name, _emit)
+    
+    async def _apply_diff(self, ctx: RunContext, diff: dict, node_name: str, emit: EventEmitter) -> None:
+        """应用 diff 到 ctx，校验 FIELD_WRITERS"""
+        for field, value in diff.items():
+            # FIELD_WRITERS 校验
+            allowed = FIELD_WRITERS.get(field)
+            if allowed and node_name not in allowed:
+                raise PermissionError(
+                    f"Node '{node_name}' cannot write '{field}'"
+                )
+            
+            if field == "messages":
+                ctx.messages.clear()
+                ctx.messages.extend(value)
+            elif field in EXTRAS_FIELDS:
+                ctx.extras[field] = value
+            else:
+                current = getattr(ctx, field, None)
+                if current != value:
+                    setattr(ctx, field, value)
+                    if field in ("emotion", "gesture"):
+                        await emit(f"{field}.final", value=value)
 
     def _schedule_downstream(self, node_name: str, result: NodeResult | None) -> None:
         """根据 NodeResult 和边决定下一个就绪节点。"""

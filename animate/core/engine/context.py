@@ -19,15 +19,21 @@ class RunServices:
 
 # ── 写保护：每个字段声明谁可以写 ──
 FIELD_WRITERS: dict[str, set[str]] = {
-    "user_input": {"input", "before"},
-    "messages": {"before", "react"},
+    "user_input": {"__entry__"},
+    "messages": {"system_prompt", "merge", "react"},
     "raw_text": {"react"},
     "final_text": {"after"},
-    "emotion": {"before", "react", "emotion", "after"},
-    "gesture": {"react", "emotion", "after"},
-    "llm_call_count": {"react"},
+    "emotion": {"system_prompt", "react", "after"},
+    "gesture": {"react", "after"},
+    "llm_call_count": {"react", "reflect"},
+    "accumulated_usage": {"react", "reflect"},
     "is_retry": {"reflect"},
     "feedback": {"reflect"},
+    "retry_feedback_injected": {"system_prompt", "reflect"},
+    "rag_vector_chunks": {"rag_vector"},
+    "rag_keyword_chunks": {"rag_keyword"},
+    "system_parts": {"system_prompt"},
+    "memory_facts": {"memory"},
 }
 
 
@@ -73,3 +79,31 @@ class RunContext:
         if not allowed:
             return True  # 未声明的字段允许任意写入
         return node_name in allowed
+    
+    def snapshot(self) -> dict:
+        """返回可序列化的数据字段快照（排除 services）"""
+        return {
+            "user_input": self.user_input,
+            "messages": list(self.messages),
+            "emotion": self.emotion,
+            "gesture": self.gesture,
+            "raw_text": self.raw_text,
+            "final_text": self.final_text,
+            "is_retry": self.is_retry,
+            "feedback": self.feedback,
+            "llm_call_count": self.llm_call_count,
+            "accumulated_usage": self.accumulated_usage,
+            "extras": dict(self.extras),
+        }
+    
+    def restore(self, snapshot: dict) -> None:
+        """从快照恢复数据字段"""
+        for key, value in snapshot.items():
+            if key == "messages":
+                self.messages.clear()
+                self.messages.extend(value)
+            elif key == "extras":
+                self.extras.clear()
+                self.extras.update(value)
+            else:
+                setattr(self, key, value)

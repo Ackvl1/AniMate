@@ -1,5 +1,4 @@
 """Tests for AfterNode (inline marker 版) — emotion/gesture 校验 + 复合规则"""
-
 from __future__ import annotations
 
 import pytest
@@ -24,7 +23,7 @@ async def test_empty_text_returns_reflect():
     ctx.raw_text = ""
     result = await node.run(ctx, AsyncMock())
     assert result.next_node == "reflect"
-    assert ctx.final_text == ""
+    assert result.diff["final_text"] == ""
 
 
 @pytest.mark.asyncio
@@ -37,7 +36,7 @@ async def test_plain_text_passthrough():
     ctx.gesture = "wave"
     result = await node.run(ctx, AsyncMock())
     assert result.next_node == "reflect"
-    assert ctx.final_text == "你好世界"
+    assert result.diff["final_text"] == "你好世界"
 
 
 @pytest.mark.asyncio
@@ -47,8 +46,8 @@ async def test_unknown_emotion_fallback_to_calm():
     ctx = RunContext(user_input="hi")
     ctx.raw_text = "test"
     ctx.emotion = "unknown_xyz"
-    await node.run(ctx, AsyncMock())
-    assert ctx.emotion == "calm"
+    result = await node.run(ctx, AsyncMock())
+    assert result.diff["emotion"] == "calm"
 
 
 @pytest.mark.asyncio
@@ -58,8 +57,8 @@ async def test_emotion_validated():
     ctx = RunContext(user_input="hi")
     ctx.raw_text = "hello"
     ctx.emotion = "happy"
-    await node.run(ctx, AsyncMock())
-    assert ctx.emotion == "happy"
+    result = await node.run(ctx, AsyncMock())
+    assert result.diff["emotion"] == "happy"
 
 
 @pytest.mark.asyncio
@@ -70,10 +69,10 @@ async def test_gesture_composite_rule():
     ctx.raw_text = "sad day"
     ctx.emotion = "sad"
     ctx.gesture = "wave"  # sad 不能配 wave
-    await node.run(ctx, AsyncMock())
-    assert ctx.gesture is not None
-    assert ctx.gesture != "wave"
-    assert ctx.gesture in AfterNode.EMOTION_GESTURE_RULES["sad"]
+    result = await node.run(ctx, AsyncMock())
+    assert result.diff["gesture"] is not None
+    assert result.diff["gesture"] != "wave"
+    assert result.diff["gesture"] in AfterNode.EMOTION_GESTURE_RULES["sad"]
 
 
 @pytest.mark.asyncio
@@ -84,8 +83,8 @@ async def test_unknown_gesture_removed():
     ctx.raw_text = "test"
     ctx.emotion = "calm"
     ctx.gesture = "unknown_gesture_xyz"
-    await node.run(ctx, AsyncMock())
-    assert ctx.gesture is None
+    result = await node.run(ctx, AsyncMock())
+    assert result.diff["gesture"] is None
 
 
 @pytest.mark.asyncio
@@ -94,5 +93,5 @@ async def test_marker_cleanup():
     node = AfterNode()
     ctx = RunContext(user_input="hi")
     ctx.raw_text = "(happy,wave)你好！(sad,sigh)不过..."
-    await node.run(ctx, AsyncMock())
-    assert ctx.final_text == "你好！不过..."
+    result = await node.run(ctx, AsyncMock())
+    assert result.diff["final_text"] == "你好！不过..."

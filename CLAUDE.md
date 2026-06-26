@@ -52,12 +52,13 @@ class Node(ABC):
 
     @abstractmethod
     async def run(self, ctx: RunContext, emit) -> NodeResult:
-        """Execute node logic. Return NodeResult(next_node=..., data=...)."""
+        """Execute node logic. Return NodeResult(next_node=..., diff=...)."""
 ```
 
 ### Key patterns
 
 - **BSP scheduling**: Parallel nodes within a superstep if no write conflicts
+- **Return-Diff Architecture** (Phase 6): Nodes return `NodeResult(diff={...})` instead of writing ctx directly. Engine auto-applies via `_apply_diff` with FIELD_WRITERS enforcement.
 - **StreamingToolExecutor**: Read-only tools execute in background during LLM streaming
 - **HITL**: `PermissionManager` prompts user for non-read-only tools (execute_python, write_file), remembers per session
 - **Re-Reminders**: `<system-reminder>` injected after each tool_call to prevent persona drift
@@ -70,6 +71,7 @@ class Node(ABC):
 - **Log rotation**: auto-archive by size (50MB) or age (30 days)
 - **Audit logging**: LogCollector routes emit events → compression_logs, tool_audit, emotion_logs, long_term_facts
 - **Token fallback**: tiktoken `estimate_tokens()` when API streaming usage unavailable
+- **DiffHistory**: SQLite-backed node diff persistence for replay/debugging
 
 ### Agent public methods
 
@@ -146,13 +148,27 @@ Migrate nodes from directly writing ctx to returning diffs. Existing GraphEngine
 node.run(ctx, emit)  → writes ctx.some_field = value
 
 # Phase 6
-node.run(inputs, emit) → returns {"field": value}   # pure function
+node.run(ctx, emit) → returns NodeResult(diff={"field": value})
 _run_node(root):
-    for k, v in result.items():
-        check_permission(k, node_name)    # FIELD_WRITERS enforced
-        setattr(ctx, k, v)                 # engine applies
+    if result.diff:
+        await self._apply_diff(ctx, result.diff, name, emit)  # engine applies
 ```
 
 Benefits: zero-mock testing, FIELD_WRITERS auto-activates, no new dependencies.
 
-Already have 80% of the infrastructure: Graph, BSP conflict detection, conditional_edge, reads/writes declarations, NodeResult.data.
+### Phase 6.1 ✅ (2026-06-26)
+- NodeResult.diff field
+- RunContext.snapshot/restore
+- GraphEngine._apply_diff + FIELD_WRITERS enforcement
+- DiffHistory SQLite persistence
+- 23 tests
+
+### Phase 6.2 🔄 (in progress)
+- [x] MemoryNode → diff
+- [x] AfterNode → diff
+- [x] ReflectNode → diff
+- [ ] RAGVectorNode → diff
+- [ ] RAGKeywordNode → diff
+- [ ] SystemPromptNode → diff
+- [ ] MergeNode → diff
+- [ ] ReactNode → diff
