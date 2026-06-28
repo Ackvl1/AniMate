@@ -22,7 +22,7 @@ async def test_empty_text_returns_reflect():
     ctx = RunContext(user_input="hi")
     ctx.raw_text = ""
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "reflect"
+    assert result.next_node is None  # direct 边由引擎处理
     assert result.diff["final_text"] == ""
 
 
@@ -35,7 +35,7 @@ async def test_plain_text_passthrough():
     ctx.emotion = "happy"
     ctx.gesture = "wave"
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "reflect"
+    assert result.next_node is None  # direct 边由引擎处理
     assert result.diff["final_text"] == "你好世界"
 
 

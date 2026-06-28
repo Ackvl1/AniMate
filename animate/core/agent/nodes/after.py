@@ -39,8 +39,10 @@ class AfterNode(Node):
         await emit("node.start", name="after")
         text = ctx.raw_text.strip()
         if not text:
-            await emit("node.done", name="after", emotion="", gesture=None, length=0)
-            return NodeResult(next_node="reflect", diff={"final_text": "", "emotion": "calm", "gesture": None})
+            await emit("emotion.final", value="calm")
+            await emit("gesture.final", value=None)
+            await emit("node.done", name="after", emotion="calm", gesture=None, length=0)
+            return NodeResult(diff={"final_text": "", "emotion": "calm", "gesture": None})
 
         # 备份清理：如果 LLM 没按 inline marker 格式输出，raw_text 可能含残留标记
         from animate.core.agent.nodes.marker_streamer import TextMarkerStreamer
@@ -73,12 +75,13 @@ class AfterNode(Node):
         if gesture == "":
             gesture = None
 
+        await emit("emotion.final", value=emotion)
+        await emit("gesture.final", value=gesture)
         logger.info("[%s] after validation: emotion=%s gesture=%s %d chars",
                     ctx.trace_id, emotion, gesture, len(cleaned))
         await emit("node.done", name="after",
                    emotion=emotion, gesture=gesture, length=len(cleaned))
 
         return NodeResult(
-            next_node="reflect",
             diff={"final_text": cleaned, "emotion": emotion, "gesture": gesture},
         )

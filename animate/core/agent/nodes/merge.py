@@ -36,25 +36,25 @@ class MergeNode(Node):
             system_parts.append("以下是相关知识：\n" + "\n---\n".join(all_chunks[:5]))
         system_text = "\n\n".join(system_parts)
 
-        # 3. 插 system prompt（不 clear，只替换/插在最前）
-        if ctx.messages and ctx.messages[0].get("role") == "system":
-            ctx.messages[0] = {"role": "system", "content": system_text}
+        # 3. 局部构建 messages（不改 ctx，返回 diff）
+        messages = list(ctx.messages)
+        if messages and messages[0].get("role") == "system":
+            messages[0] = {"role": "system", "content": system_text}
         else:
-            ctx.messages.insert(0, {"role": "system", "content": system_text})
+            messages.insert(0, {"role": "system", "content": system_text})
 
-        # 4. 防御纵深：user_input 已在 agent.py 注入，此处不重复追加
-        #    仅在极端回退场景（ctx.messages 末尾缺 user）时补入
+        # 4. 防御纵深：仅在极端回退场景（messages 末尾缺 user）时补入
         last_user_idx = next(
-            (i for i in range(len(ctx.messages) - 1, -1, -1)
-             if ctx.messages[i].get("role") == "user"), -1
+            (i for i in range(len(messages) - 1, -1, -1)
+             if messages[i].get("role") == "user"), -1
         )
         if last_user_idx < 0:
-            ctx.messages.append({"role": "user", "content": ctx.user_input})
+            messages.append({"role": "user", "content": ctx.user_input})
 
-        history_turns = sum(1 for m in ctx.messages if m["role"] == "assistant")
+        history_turns = sum(1 for m in messages if m["role"] == "assistant")
         logger.info("[%s] merge: %d rag chunks, %d history turns, %d total msgs",
-                    ctx.trace_id, len(all_chunks), history_turns, len(ctx.messages))
+                    ctx.trace_id, len(all_chunks), history_turns, len(messages))
         await emit("node.done", name="merge",
                    total_chunks=len(all_chunks), history_turns=history_turns)
 
-        return NodeResult(next_node="react")
+        return NodeResult(diff={"messages": messages})

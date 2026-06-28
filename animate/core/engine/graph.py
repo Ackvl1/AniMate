@@ -87,8 +87,10 @@ class Graph:
 
     # ── 创建引擎 ────────────────────────────────────
 
-    def create_engine(self, max_steps: int = 50) -> GraphEngine:
-        return GraphEngine(self, max_steps=max_steps)
+    def create_engine(self, max_steps: int = 50,
+                      diff_history=None) -> GraphEngine:
+        return GraphEngine(self, max_steps=max_steps,
+                          diff_history=diff_history)
 
 
 class GraphEngine:
@@ -102,13 +104,15 @@ class GraphEngine:
       5. 有回路边则重新标记上游就绪
     """
 
-    def __init__(self, graph: Graph, max_steps: int = 50):
+    def __init__(self, graph: Graph, max_steps: int = 50,
+                 diff_history=None):
         self._graph = graph
         self._max_steps = max_steps
+        self._diff_history = diff_history
         self.executed_nodes: list[str] = []
         self._completed: set[str] = set()      # 已完成的节点
         self._pending: set[str] = set()         # 已就绪待执行的节点
-        self._node_results: dict[str, NodeResult] = {}  # 每个节点的结果
+        self._node_results: dict[str, NodeResult] = {}
 
     async def run(self, ctx: RunContext, emit: EventEmitter | None = None) -> GraphEngine:
         """执行图，返回自身（供链式调用）。"""
@@ -141,7 +145,21 @@ class GraphEngine:
                 result = self._node_results.get(name)
                 self._schedule_downstream(name, result)
 
+        # 引擎结束时 flush DiffHistory
+        if self._diff_history:
+            await self._diff_history.flush()
+
         return self
+
+    def _capture_inputs(self, node, ctx: RunContext) -> dict:
+        """抓取节点输入（用于 DiffHistory）"""
+        inputs = {}
+        for f in (node.reads or set()):
+            if f in EXTRAS_FIELDS:
+                inputs[f] = ctx.extras.get(f)
+            else:
+                inputs[f] = getattr(ctx, f, None)
+        return inputs
 
     async def _run_node(self, name: str, ctx: RunContext, emit: EventEmitter | None = None) -> None:
         """执行一个节点并保存结果。跳过虚拟节点（无实际 Node 对象）。"""
@@ -150,12 +168,25 @@ class GraphEngine:
             return  # fan_out 等虚拟节点，仅用于调度
 
         _emit = emit if emit is not None else _noop_emit
-        result = await node.run(ctx, _emit)
-        self._node_results[name] = result
-        
-        # Phase 6: apply diff
-        if result.diff:
-            await self._apply_diff(ctx, result.diff, name, _emit)
+        snapshot = ctx.snapshot()
+        inputs = self._capture_inputs(node, ctx)
+        t0 = __import__("time").monotonic()
+        try:
+            result = await node.run(ctx, _emit)
+            self._node_results[name] = result
+            
+            # Phase 6: apply diff
+            if result.diff:
+                await self._apply_diff(ctx, result.diff, name, _emit)
+                if self._diff_history:
+                    duration_ms = (__import__("time").monotonic() - t0) * 1000
+                    await self._diff_history.record(
+                        node_name=name, diff=result.diff, trace_id=ctx.trace_id,
+                        inputs=inputs, duration_ms=duration_ms,
+                    )
+        except Exception as e:
+            ctx.restore(snapshot)
+            raise
     
     async def _apply_diff(self, ctx: RunContext, diff: dict, node_name: str, emit: EventEmitter) -> None:
         """应用 diff 到 ctx，校验 FIELD_WRITERS"""
@@ -173,11 +204,12 @@ class GraphEngine:
             elif field in EXTRAS_FIELDS:
                 ctx.extras[field] = value
             else:
-                current = getattr(ctx, field, None)
-                if current != value:
+                if field in ("emotion", "gesture"):
                     setattr(ctx, field, value)
-                    if field in ("emotion", "gesture"):
-                        await emit(f"{field}.final", value=value)
+                else:
+                    current = getattr(ctx, field, None)
+                    if current != value:
+                        setattr(ctx, field, value)
 
     def _schedule_downstream(self, node_name: str, result: NodeResult | None) -> None:
         """根据 NodeResult 和边决定下一个就绪节点。"""

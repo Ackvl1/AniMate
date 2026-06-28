@@ -527,15 +527,24 @@ async def _run_engine():
 **新增测试**：22 个（5+8+9）
 **适配旧测试**：6 个（test_nodes_after, test_nodes_reflect, test_b10_b11_b12, test_scratchpad）
 
-### Phase 6.2 待迁移节点
+### Phase 6.2 待迁移节点（2026-06-28 grill 确认，方案 A）
 
-| 节点 | 复杂度 | 预计工作 |
-|------|--------|----------|
-| RAGVectorNode | L=2 | 返回 diff.rag_vector_chunks |
-| RAGKeywordNode | L=2 | 返回 diff.rag_keyword_chunks |
-| SystemPromptNode | L=2 | 返回 diff.system_parts + retry_feedback_injected |
-| MergeNode | L=3 | 返回 diff.messages（需处理多路输入） |
-| ReactNode | L=5 | 最复杂，流式 emit + 工具执行 + 多轮 LLM |
+| 节点 | 复杂度 | diff 字段 | 备注 |
+|------|--------|-----------|------|
+| RAGVectorNode | L=1 | `{rag_vector_chunks}` | 加 diff 返回 |
+| RAGKeywordNode | L=1 | `{rag_keyword_chunks}` | 同上 |
+| SystemPromptNode | L=2 | `{system_parts, retry_feedback_injected}` | 返回 diff |
+| MergeNode | L=3 | `{messages}` | 多输入聚合，返回完整 messages list |
+| ReactNode | L=3 | `{messages, raw_text, emotion, gesture, llm_call_count, accumulated_usage}` | 方案 A：6 字段 diff，流式 ctx 直写保留 |
+
+**方案 A 关键决策：**
+- ReactNode diff 含 emotion/gesture/raw_text（diff 完整性）
+- `_apply_diff` 移除 emotion/gesture 的 auto final emit
+- AfterNode 显式 emit emotion.final / gesture.final
+- `_apply_diff` 对 emotion/gesture 去掉 `if current != value` 判断（风格对齐 + 渐进迁移预留）
+- ReactNode 删除冗余 `next_node="after"`
+
+**PRD**：`PRD-phase6.2-remaining-nodes.md`
 
 ---
 
@@ -548,14 +557,15 @@ async def _run_engine():
 - [x] MemoryNode 返回 diff
 - [x] AfterNode 返回 diff
 - [x] ReflectNode 返回 diff
-- [ ] RAGVectorNode 返回 diff
-- [ ] RAGKeywordNode 返回 diff
-- [ ] SystemPromptNode 返回 diff
-- [ ] MergeNode 返回 diff
-- [ ] ReactNode 返回 diff
-- [ ] 所有节点迁移完成
+- [x] RAGVectorNode 返回 diff
+- [x] RAGKeywordNode 返回 diff
+- [x] SystemPromptNode 返回 diff
+- [x] MergeNode 返回 diff
+- [x] ReactNode 返回 diff
+- [x] 所有节点迁移完成
 - [ ] 8 个边界情况全部处理
-- [ ] 全量测试通过
+- [x] 全量测试通过（493 passed）
+- [x] 8 个边界情况全部处理
 
 ---
 

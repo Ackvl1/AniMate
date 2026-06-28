@@ -36,7 +36,5 @@ class MemoryNode(Node):
 
         await emit("node.done", name="memory", count=len(facts))
         return NodeResult(
-            next_node="system_prompt",
-            data={"facts": facts},
-            diff={"memory_facts": facts},  # Phase 6: 返回 diff
+            diff={"memory_facts": facts},
         )

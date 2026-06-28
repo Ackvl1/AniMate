@@ -41,3 +41,9 @@ def sessions_dir() -> Path:
     d = data_root() / "sessions"
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def trace_dir() -> Path:
+    d = data_root() / "trace"
+    d.mkdir(parents=True, exist_ok=True)
+    return d

@@ -23,7 +23,7 @@ async def test_returns_react_next_node():
     ctx.extras["rag_keyword_chunks"] = []
     ctx.extras["system_parts"] = ["你是祥子", "指令"]
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "react"
+    assert result.next_node is None  # direct 边由引擎处理
 
 
 @pytest.mark.asyncio
@@ -34,9 +34,9 @@ async def test_merges_vector_and_keyword_chunks():
     ctx.extras["rag_vector_chunks"] = ["v1", "v2"]
     ctx.extras["rag_keyword_chunks"] = ["k1", "k2"]
     ctx.extras["system_parts"] = ["你是祥子", "指令"]
-    await node.run(ctx, AsyncMock())
+    result = await node.run(ctx, AsyncMock())
 
-    system_text = ctx.messages[0]["content"]
+    system_text = result.diff["messages"][0]["content"]
     assert "v1" in system_text
     assert "v2" in system_text
     assert "k1" in system_text
@@ -51,9 +51,9 @@ async def test_dedups_chunks():
     ctx.extras["rag_vector_chunks"] = ["same", "unique_vec"]
     ctx.extras["rag_keyword_chunks"] = ["same", "unique_kw"]
     ctx.extras["system_parts"] = ["你是祥子", "指令"]
-    await node.run(ctx, AsyncMock())
+    result = await node.run(ctx, AsyncMock())
 
-    system_text = ctx.messages[0]["content"]
+    system_text = result.diff["messages"][0]["content"]
     assert system_text.count("same") == 1  # 去重
     assert "unique_vec" in system_text
     assert "unique_kw" in system_text
@@ -67,9 +67,9 @@ async def test_no_chunks_omits_rag_section():
     ctx.extras["rag_vector_chunks"] = []
     ctx.extras["rag_keyword_chunks"] = []
     ctx.extras["system_parts"] = ["你是祥子", "指令"]
-    await node.run(ctx, AsyncMock())
+    result = await node.run(ctx, AsyncMock())
 
-    system_text = ctx.messages[0]["content"]
+    system_text = result.diff["messages"][0]["content"]
     assert "相关知识" not in system_text
     assert "你是祥子" in system_text
 
@@ -89,9 +89,9 @@ async def test_injects_memory_history():
     ctx.extras["rag_vector_chunks"] = []
     ctx.extras["rag_keyword_chunks"] = []
     ctx.extras["system_parts"] = ["你是祥子"]
-    await node.run(ctx, AsyncMock())
+    result = await node.run(ctx, AsyncMock())
 
-    roles = [m["role"] for m in ctx.messages]
+    roles = [m["role"] for m in result.diff["messages"]]
     assert roles == ["system", "user", "assistant", "user"]
 
 
@@ -103,10 +103,10 @@ async def test_injects_user_input():
     ctx.extras["rag_vector_chunks"] = []
     ctx.extras["rag_keyword_chunks"] = []
     ctx.extras["system_parts"] = ["你是祥子"]
-    await node.run(ctx, AsyncMock())
+    result = await node.run(ctx, AsyncMock())
 
-    assert ctx.messages[-1]["role"] == "user"
-    assert ctx.messages[-1]["content"] == "今天天气真好"
+    assert result.diff["messages"][-1]["role"] == "user"
+    assert result.diff["messages"][-1]["content"] == "今天天气真好"
 
 
 @pytest.mark.asyncio

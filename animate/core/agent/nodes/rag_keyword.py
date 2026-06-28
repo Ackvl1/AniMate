@@ -35,5 +35,4 @@ class RAGKeywordNode(Node):
             logger.warning("[%s] rag_keyword failed: %s", ctx.trace_id, e)
             chunks = []
             await emit("node.done", name="rag_keyword", chunks=0, preview="")
-        ctx.extras["rag_keyword_chunks"] = chunks
-        return NodeResult(next_node="merge", data={"chunks": chunks})
+        return NodeResult(diff={"rag_keyword_chunks": chunks})

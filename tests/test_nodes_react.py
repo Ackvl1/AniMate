@@ -43,7 +43,7 @@ async def test_direct_reply_returns_after():
     ctx = RunContext(user_input="你好")
     ctx.messages = [{"role": "system", "content": "你是祥子"}, {"role": "user", "content": "你好"}]
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "after"
+    assert result.next_node is None  # direct 边由引擎处理
     assert ctx.raw_text == "本小姐知道了"
 
 
@@ -61,7 +61,7 @@ async def test_tool_call_then_reply():
     ctx = RunContext(user_input="几点了")
     ctx.messages = [{"role": "system", "content": "你是助手"}, {"role": "user", "content": "几点了"}]
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "after"
+    assert result.next_node is None  # direct 边由引擎处理
     assert ctx.raw_text == "现在是12:00"
     assert llm.call_count == 2
 
@@ -130,4 +130,4 @@ async def test_max_rounds_limit():
     ctx = RunContext(user_input="loop")
     ctx.messages = [{"role": "system", "content": "助手"}, {"role": "user", "content": "loop"}]
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "after"
+    assert result.next_node is None  # direct 边由引擎处理

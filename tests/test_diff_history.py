@@ -1,108 +1,92 @@
-"""Tests for DiffHistory persistence (Phase 6)"""
+"""Tests for DiffHistory persistence (Phase 6.5 — async, 7-field schema)"""
 import pytest
 import asyncio
-import time
-from pathlib import Path
 from animate.core.engine.diff_history import DiffHistory
 
 
 class TestDiffHistory:
-    """DiffHistory 应该支持 SQLite 持久化"""
-    
-    def test_init_creates_table(self):
+    """DiffHistory 应该支持 SQLite 持久化（async record, 7 fields）"""
+
+    @pytest.mark.asyncio
+    async def test_init_creates_table(self):
         """初始化应该创建 diff_history 表"""
         history = DiffHistory(":memory:")
-        assert history.db_path == ":memory:"
-    
-    def test_save_records(self):
-        """save_records 应该保存记录"""
+        rows = history.query(limit=10)
+        assert rows == []
+        history.close()
+
+    @pytest.mark.asyncio
+    async def test_record_and_query(self):
+        """async record 应该保存记录，query 应该返回"""
         history = DiffHistory(":memory:")
-        
-        records = [
-            {"trace_id": "abc", "node": "react", "diff": {"emotion": "happy"}},
-            {"trace_id": "abc", "node": "after", "diff": {"final_text": "hello"}},
-        ]
-        
-        history.save_records(records)
-        
-        # 查询验证
+        await history.record(
+            node_name="react", diff={"emotion": "happy"},
+            trace_id="abc",
+        )
+        await history.flush()
+
         rows = history.query(trace_id="abc")
-        assert len(rows) == 2
-    
-    def test_query_by_trace_id(self):
+        assert len(rows) == 1
+        assert rows[0]["node_name"] == "react"
+        assert rows[0]["diff"] == {"emotion": "happy"}
+        assert rows[0]["duration_ms"] == 0
+        history.close()
+
+    @pytest.mark.asyncio
+    async def test_record_with_inputs_and_duration(self):
+        """record 应该保存 inputs 和 duration_ms"""
+        history = DiffHistory(":memory:")
+        await history.record(
+            node_name="after", diff={"final_text": "hello"},
+            trace_id="xyz",
+            inputs={"raw_text": "hello world"},
+            duration_ms=42.5,
+        )
+        await history.flush()
+
+        rows = history.query(trace_id="xyz")
+        assert len(rows) == 1
+        assert rows[0]["inputs"] == {"raw_text": "hello world"}
+        assert rows[0]["duration_ms"] == 42.5
+        history.close()
+
+    @pytest.mark.asyncio
+    async def test_buffer_flushes_at_max(self):
+        """buffer 满时自动 flush"""
+        history = DiffHistory(":memory:", max_buffer=3)
+        for i in range(3):
+            await history.record(
+                node_name=f"node_{i}", diff={"i": i}, trace_id="buf"
+            )
+        # 第 3 条触发 auto flush
+        rows = history.query(trace_id="buf")
+        assert len(rows) == 3
+        history.close()
+
+    @pytest.mark.asyncio
+    async def test_query_by_trace_id(self):
         """query 应该支持按 trace_id 过滤"""
         history = DiffHistory(":memory:")
-        
-        history.save_records([
-            {"trace_id": "abc", "node": "react", "diff": {"emotion": "happy"}},
-            {"trace_id": "def", "node": "react", "diff": {"emotion": "sad"}},
-        ])
-        
+        await history.record(node_name="react", diff={}, trace_id="abc")
+        await history.record(node_name="react", diff={}, trace_id="def")
+        await history.flush()
+
         rows = history.query(trace_id="abc")
         assert len(rows) == 1
         assert rows[0]["trace_id"] == "abc"
-    
-    def test_query_by_time_range(self):
-        """query 应该支持时间范围过滤"""
+        history.close()
+
+    @pytest.mark.asyncio
+    async def test_full_chain_ordering(self):
+        """一个 trace 的完整 diff 链应该按 id 有序"""
         history = DiffHistory(":memory:")
-        
-        now = time.time()
-        history.save_records([
-            {"trace_id": "a", "node": "react", "diff": {}, "ts": now - 100},
-            {"trace_id": "b", "node": "react", "diff": {}, "ts": now},
-            {"trace_id": "c", "node": "react", "diff": {}, "ts": now + 100},
-        ])
-        
-        # 只返回时间范围内的
-        rows = history.query(since=now - 50, before=now + 50)
-        assert len(rows) == 1
-        assert rows[0]["trace_id"] == "b"
-    
-    def test_cleanup_removes_old(self):
-        """cleanup 应该删除超过 retention_days 的记录"""
-        history = DiffHistory(":memory:", retention_days=1)
-        
-        old_time = time.time() - 2 * 86400  # 2 天前
-        history.save_records([
-            {"trace_id": "old", "node": "react", "diff": {}, "ts": old_time},
-            {"trace_id": "new", "node": "react", "diff": {}, "ts": time.time()},
-        ])
-        
-        deleted = history.cleanup()
-        assert deleted == 1
-        
-        rows = history.query()
-        assert len(rows) == 1
-        assert rows[0]["trace_id"] == "new"
-    
-    def test_save_empty_records(self):
-        """save_records 应该跳过空列表"""
-        history = DiffHistory(":memory:")
-        history.save_records([])
-        rows = history.query()
-        assert len(rows) == 0
-    
-    def test_persistence_across_instances(self):
-        """记录应该持久化到文件"""
-        import tempfile
-        import os
-        
-        db_path = os.path.join(tempfile.gettempdir(), "test_diff_history.db")
-        try:
-            # 清理旧文件
-            if os.path.exists(db_path):
-                os.remove(db_path)
-            
-            # 写入并关闭
-            h1 = DiffHistory(db_path)
-            h1.save_records([{"trace_id": "test", "node": "react", "diff": {}}])
-            h1.close()
-            
-            # 重新打开读取并关闭
-            h2 = DiffHistory(db_path)
-            rows = h2.query(trace_id="test")
-            h2.close()
-            assert len(rows) == 1
-        finally:
-            if os.path.exists(db_path):
-                os.remove(db_path)
+        nodes = ["memory", "rag_vector", "rag_keyword", "system_prompt",
+                 "merge", "react", "after", "reflect"]
+        for name in nodes:
+            await history.record(node_name=name, diff={}, trace_id="chain1")
+        await history.flush()
+
+        rows = history.query(trace_id="chain1")
+        assert len(rows) == 8
+        assert [r["node_name"] for r in rows] == nodes
+        history.close()

@@ -43,5 +43,4 @@ class RAGVectorNode(Node):
             logger.warning("[%s] rag_vector failed: %s", ctx.trace_id, e)
             chunks = []
             await emit("node.done", name="rag_vector", chunks=0, preview="")
-        ctx.extras["rag_vector_chunks"] = chunks
-        return NodeResult(next_node="merge", data={"chunks": chunks})
+        return NodeResult(diff={"rag_vector_chunks": chunks})

@@ -163,12 +163,14 @@ Benefits: zero-mock testing, FIELD_WRITERS auto-activates, no new dependencies.
 - DiffHistory SQLite persistence
 - 23 tests
 
-### Phase 6.2 🔄 (in progress)
+### Phase 6.2 🔄 (in progress — 2026-06-28 grill 确认方案 A)
 - [x] MemoryNode → diff
 - [x] AfterNode → diff
 - [x] ReflectNode → diff
-- [ ] RAGVectorNode → diff
-- [ ] RAGKeywordNode → diff
-- [ ] SystemPromptNode → diff
-- [ ] MergeNode → diff
-- [ ] ReactNode → diff
+- [ ] RAGVectorNode → diff (L=1)
+- [ ] RAGKeywordNode → diff (L=1)
+- [ ] SystemPromptNode → diff (L=2)
+- [ ] _apply_diff 重构（移除 emotion/gesture auto final emit，去掉判等）
+- [ ] AfterNode 显式 emit emotion.final / gesture.final
+- [ ] MergeNode → diff (L=3)
+- [ ] ReactNode → diff 6 字段 (L=3, 方案 A)

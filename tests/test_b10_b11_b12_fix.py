@@ -29,11 +29,10 @@ class TestB10NoDuplicateUserInput:
         ctx.extras["rag_keyword_chunks"] = []
         ctx.extras["system_parts"] = ["你是祥子"]
 
-        await node.run(ctx, AsyncMock())
+        result = await node.run(ctx, AsyncMock())
 
-        # user 只出现一次
-        user_msgs = [m for m in ctx.messages if m["role"] == "user"]
-        assert len(user_msgs) == 1
+        user_msgs = [m for m in result.diff["messages"] if m["role"] == "user"]
+        assert len(user_msgs) == 1  # 不重复
         assert user_msgs[0]["content"] == "你好"
 
     @pytest.mark.asyncio
@@ -47,9 +46,9 @@ class TestB10NoDuplicateUserInput:
         ctx.extras["rag_keyword_chunks"] = []
         ctx.extras["system_parts"] = ["你是祥子"]
 
-        await node.run(ctx, AsyncMock())
+        result = await node.run(ctx, AsyncMock())
 
-        user_msgs = [m for m in ctx.messages if m["role"] == "user"]
+        user_msgs = [m for m in result.diff["messages"] if m["role"] == "user"]
         assert len(user_msgs) == 1
         assert user_msgs[0]["content"] == "你好"
 
@@ -146,10 +145,10 @@ class TestB11NoDoubleFeedback:
 
         with patch.object(node, '_stream_round', new_callable=AsyncMock) as mock_stream:
             mock_stream.return_value = LLMResult(content="你好呀～", tool_calls=None)
-            await node.run(ctx, AsyncMock())
+            result = await node.run(ctx, AsyncMock())
 
         # messages 末尾应有 feedback system 消息
-        feedback_msgs = [m for m in ctx.messages
+        feedback_msgs = [m for m in result.diff["messages"]
                          if m.get("role") == "system"
                          and "重试指示" in m.get("content", "")]
         assert len(feedback_msgs) == 1

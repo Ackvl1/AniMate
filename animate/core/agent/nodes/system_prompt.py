@@ -39,17 +39,19 @@ class SystemPromptNode(Node):
             system_parts.append(f"## 角色记忆（跨会话）\n{facts_str}")
 
         # 重试反馈注入（level 4 "before" 路径时 SystemPromptNode 会跑）
+        retry_feedback_injected = False
         if ctx.is_retry and ctx.feedback:
             system_parts.append(
                 "【重试指示】上轮回复需要改进：{feedback}\n"
                 "请先说一句符合角色性格的过渡语自然衔接，\n"
                 "然后输出修正后的回答。".format(feedback=ctx.feedback)
             )
-            ctx.extras["retry_feedback_injected"] = True
+            retry_feedback_injected = True
 
         logger.info("[%s] system_prompt: facts=%d, retry=%s",
                     ctx.trace_id, len(long_term_facts), ctx.is_retry)
         await emit("node.done", name="system_prompt",
                    has_facts=bool(long_term_facts), has_retry=ctx.is_retry)
-        ctx.extras["system_parts"] = system_parts
-        return NodeResult(next_node="merge", data={"system_parts": system_parts})
+        return NodeResult(
+            diff={"system_parts": system_parts, "retry_feedback_injected": retry_feedback_injected},
+        )

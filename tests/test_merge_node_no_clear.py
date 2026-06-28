@@ -37,10 +37,10 @@ class TestMergeNodeNoClear:
         """MergeNode 运行后历史消息仍然存在。"""
         async def noop_emit(*args, **kwargs):
             pass
-        await node.run(mock_ctx, noop_emit)
-        assert len(mock_ctx.messages) >= 2
+        result = await node.run(mock_ctx, noop_emit)
+        assert len(result.diff["messages"]) >= 2
         # 历史消息还在
-        contents = [m["content"] for m in mock_ctx.messages]
+        contents = [m["content"] for m in result.diff["messages"]]
         assert "上一轮问题" in contents
         assert "上一轮回答" in contents
 
@@ -49,18 +49,18 @@ class TestMergeNodeNoClear:
         """system prompt 被插入到 messages 最前。"""
         async def noop_emit(*args, **kwargs):
             pass
-        await node.run(mock_ctx, noop_emit)
-        assert mock_ctx.messages[0]["role"] == "system"
-        assert "你是助手" in mock_ctx.messages[0]["content"]
+        result = await node.run(mock_ctx, noop_emit)
+        assert result.diff["messages"][0]["role"] == "system"
+        assert "你是助手" in result.diff["messages"][0]["content"]
 
     @pytest.mark.asyncio
     async def test_appends_user_input_at_end(self, node, mock_ctx):
         """user input 在末尾。"""
         async def noop_emit(*args, **kwargs):
             pass
-        await node.run(mock_ctx, noop_emit)
-        assert mock_ctx.messages[-1]["role"] == "user"
-        assert mock_ctx.messages[-1]["content"] == "你好"
+        result = await node.run(mock_ctx, noop_emit)
+        assert result.diff["messages"][-1]["role"] == "user"
+        assert result.diff["messages"][-1]["content"] == "你好"
 
     @pytest.mark.asyncio
     async def test_replaces_system_when_already_exists(self, node, mock_ctx):
@@ -68,10 +68,10 @@ class TestMergeNodeNoClear:
         mock_ctx.messages.insert(0, {"role": "system", "content": "旧的系统指令"})
         async def noop_emit(*args, **kwargs):
             pass
-        await node.run(mock_ctx, noop_emit)
-        assert mock_ctx.messages[0]["role"] == "system"
-        assert mock_ctx.messages[0]["content"] != "旧的系统指令"
-        assert "你是助手" in mock_ctx.messages[0]["content"]
+        result = await node.run(mock_ctx, noop_emit)
+        assert result.diff["messages"][0]["role"] == "system"
+        assert result.diff["messages"][0]["content"] != "旧的系统指令"
+        assert "你是助手" in result.diff["messages"][0]["content"]
 
     @pytest.mark.asyncio
     async def test_injects_rag_chunks(self, node, mock_ctx):
@@ -79,8 +79,8 @@ class TestMergeNodeNoClear:
         mock_ctx.extras["rag_vector_chunks"] = ["知识1", "知识2"]
         async def noop_emit(*args, **kwargs):
             pass
-        await node.run(mock_ctx, noop_emit)
-        assert "知识1" in mock_ctx.messages[0]["content"]
+        result = await node.run(mock_ctx, noop_emit)
+        assert "知识1" in result.diff["messages"][0]["content"]
 
     @pytest.mark.asyncio
     async def test_total_messages_order(self, node, mock_ctx):
@@ -92,6 +92,6 @@ class TestMergeNodeNoClear:
             {"role": "assistant", "content": "历史回复1"},
             {"role": "user", "content": "你好"},  # agent.py 注入
         ]
-        await node.run(mock_ctx, noop_emit)
-        roles = [m["role"] for m in mock_ctx.messages]
+        result = await node.run(mock_ctx, noop_emit)
+        roles = [m["role"] for m in result.diff["messages"]]
         assert roles == ["system", "user", "assistant", "user"]

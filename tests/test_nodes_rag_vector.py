@@ -27,7 +27,7 @@ async def test_returns_merge_next_node(mock_vector_store):
     node = RAGVectorNode(vector_store=mock_vector_store)
     ctx = RunContext(user_input="今天天气")
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "merge"
+    assert result.next_node is None  # direct 边由引擎处理
 
 
 @pytest.mark.asyncio
@@ -41,7 +41,7 @@ async def test_invokes_embed_and_search(mock_vector_store):
 
     mock_embed.assert_called_once_with(["今天天气"])
     mock_vector_store.search.assert_called_once()
-    assert result.data["chunks"] == ["chunk1", "chunk2"]
+    assert result.diff["rag_vector_chunks"] == ["chunk1", "chunk2"]
 
 
 @pytest.mark.asyncio
@@ -53,7 +53,7 @@ async def test_embed_failure_returns_empty(mock_vector_store):
         mock_embed.side_effect = Exception("API error")
         result = await node.run(ctx, AsyncMock())
 
-    assert result.data["chunks"] == []
+    assert result.diff["rag_vector_chunks"] == []
 
 
 @pytest.mark.asyncio
@@ -66,4 +66,4 @@ async def test_search_empty_returns_empty(mock_vector_store):
         mock_embed.return_value = [[0.1, 0.2]]
         result = await node.run(ctx, AsyncMock())
 
-    assert result.data["chunks"] == []
+    assert result.diff["rag_vector_chunks"] == []

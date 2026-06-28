@@ -70,4 +70,4 @@ class TestMemoryNodeDiff:
         
         result = self._run(node.run(ctx, AsyncMock()))
         
-        assert result.next_node == "system_prompt"
+        assert result.next_node is None  # direct 边由引擎处理

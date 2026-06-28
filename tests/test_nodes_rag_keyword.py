@@ -27,7 +27,7 @@ async def test_returns_merge_next_node(mock_keyword_store):
     node = RAGKeywordNode(keyword_store=mock_keyword_store)
     ctx = RunContext(user_input="今天天气")
     result = await node.run(ctx, AsyncMock())
-    assert result.next_node == "merge"
+    assert result.next_node is None  # direct 边由引擎处理
 
 
 @pytest.mark.asyncio
@@ -38,7 +38,7 @@ async def test_invokes_search(mock_keyword_store):
     result = await node.run(ctx, AsyncMock())
 
     mock_keyword_store.search.assert_called_once_with("今天天气")
-    assert result.data["chunks"] == ["kw_chunk1", "kw_chunk2"]
+    assert result.diff["rag_keyword_chunks"] == ["kw_chunk1", "kw_chunk2"]
 
 
 @pytest.mark.asyncio
@@ -49,7 +49,7 @@ async def test_search_failure_returns_empty(mock_keyword_store):
     ctx = RunContext(user_input="今天天气")
     result = await node.run(ctx, AsyncMock())
 
-    assert result.data["chunks"] == []
+    assert result.diff["rag_keyword_chunks"] == []
 
 
 @pytest.mark.asyncio
@@ -60,4 +60,4 @@ async def test_search_empty_returns_empty(mock_keyword_store):
     ctx = RunContext(user_input="今天天气")
     result = await node.run(ctx, AsyncMock())
 
-    assert result.data["chunks"] == []
+    assert result.diff["rag_keyword_chunks"] == []

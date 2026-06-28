@@ -84,18 +84,30 @@ class ReactNode(Node):
                 continue
 
             # LLM 直接回复
-            ctx.messages = messages
             preview = result.content[:60].replace("\n", "\\n")
             logger.info("[%s] react round %d done: %d chars [%s]",
                         ctx.trace_id, round_num, len(result.content), preview)
             await emit("node.done", name="react", rounds=round_num, tool_calls=0)
-            return NodeResult(next_node="after")
+            return NodeResult(diff={
+                "messages": messages,
+                "raw_text": ctx.raw_text,
+                "emotion": ctx.emotion,
+                "gesture": ctx.gesture,
+                "llm_call_count": ctx.llm_call_count,
+                "accumulated_usage": ctx.accumulated_usage,
+            })
 
-        ctx.raw_text = "（已达最大工具调用轮数）"
-        ctx.messages = messages
+        ctx.raw_text = "（已达最大工具调用轮数）"  # 保留直写（raw_text 流式语义）
         logger.warning("[%s] react exceeded max rounds", ctx.trace_id)
         await emit("node.done", name="react", rounds=round_num, tool_calls=-1)
-        return NodeResult(next_node="after")
+        return NodeResult(diff={
+            "messages": messages,
+            "raw_text": ctx.raw_text,
+            "emotion": ctx.emotion,
+            "gesture": ctx.gesture,
+            "llm_call_count": ctx.llm_call_count,
+            "accumulated_usage": ctx.accumulated_usage,
+        })
 
     # ── 流式调用 ─────────────────────────────────────
 
@@ -247,7 +259,11 @@ class ReactNode(Node):
                             await emit("tool.denied", name=tc.name)
                             messages.append(tc.to_tool_message(result=output))
                             continue  # 跳过这个工具的执行，继续下一个
-                output = self._tools.execute(tc.name, tc.arguments)
+                try:
+                    output = self._tools.execute(tc.name, tc.arguments)
+                except Exception as e:
+                    output = f"工具执行失败：{e}"
+                    logger.warning("[%s] tool %s failed: %s", ctx.trace_id, tc.name, e)
 
             messages.append(tc.to_tool_message(result=output))
 

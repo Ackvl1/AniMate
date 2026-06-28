@@ -71,6 +71,7 @@ class Agent:
 
         # Session store + rotation
         self._session_store = session_store
+        self._diff_history = None  # DiffHistory 单例，跨 chat 复用
         self._session_id: str = str(_uuid.uuid4())[:8]
         if self._session_store:
             self._session_store.init_session(self._session_id, [])
@@ -314,7 +315,15 @@ class Agent:
             {"role": "user", "content": user_input}
         ]
 
-        engine = self._graph.create_engine(max_steps=MAX_GRAPH_STEPS)
+        # DiffHistory 单例（跨 chat 复用）
+        if self._diff_history is None:
+            from animate.core.engine.diff_history import DiffHistory
+            self._diff_history = DiffHistory()
+
+        engine = self._graph.create_engine(
+            max_steps=MAX_GRAPH_STEPS,
+            diff_history=self._diff_history,
+        )
 
         # ── asyncio.Queue 桥接 emit 回调和 yield ──
         queue: asyncio.Queue = asyncio.Queue()
@@ -361,18 +370,6 @@ class Agent:
                         error_msg=str(e),
                     )
 
-        # 长期记忆注入（当没有 MemoryProvider 时，agent 层预填）
-        if not any(
-            n for n in self._graph.nodes.values()
-            if getattr(n, "_provider", None) is not None
-        ):
-            try:
-                facts = self._phase_logger._db.query_facts(limit=10)
-                if facts:
-                    ctx.extras["memory_facts"] = [f["fact_text"] for f in facts]
-            except Exception:
-                pass
-
         # emit 函数：节点运行时实时将事件放入 asyncio.Queue
         # 同时分派到 PhaseEventLogger（阶段日志）和 LogCollector（审计日志）
         async def emit(type: str, **data):
@@ -398,6 +395,9 @@ class Agent:
                 ctx.final_text = "抱歉，我刚才走神了，能再说一遍吗？"
                 ctx.emotion = "confused"
                 ctx.gesture = "tilt_head"
+                # 引擎兜底是唯一允许绕过 diff 的通道，但必须 emit final 事件
+                await emit("emotion.final", value="confused")
+                await emit("gesture.final", value="tilt_head")
             finally:
                 await queue.put(None)  # 哨兵
 
@@ -501,5 +501,10 @@ class Agent:
         if self._phase_logger:
             try:
                 self._phase_logger._db.close()
+            except Exception:
+                pass
+        if self._diff_history:
+            try:
+                self._diff_history.close()
             except Exception:
                 pass

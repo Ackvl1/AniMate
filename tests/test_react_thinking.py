@@ -64,8 +64,8 @@ class TestReActThinking:
         result = await node.run(ctx, noop_emit)
 
         # 检查 messages 中 assistant 消息是否保留了 thinking
-        assistant_msgs = [m for m in ctx.messages if m["role"] == "assistant"]
-        tool_msgs = [m for m in ctx.messages if m["role"] == "tool"]
+        assistant_msgs = [m for m in result.diff["messages"] if m["role"] == "assistant"]
+        tool_msgs = [m for m in result.diff["messages"] if m["role"] == "tool"]
 
         # assistant 消息的 content 应该保留思考过程
         assert any("东京的天气" in (m.get("content") or "") for m in assistant_msgs)

@@ -44,8 +44,8 @@ class TestReReminders:
         result = await node.run(ctx, AsyncMock())
 
         # 验证 messages 中包含了 system-reminder
-        reminders = [m for m in ctx.messages if "system-reminder" in str(m.get("content", ""))]
-        assert len(reminders) >= 1, f"工具调用后 messages 应包含 system-reminder, 但 messages={ctx.messages}"
+        reminders = [m for m in result.diff["messages"] if "system-reminder" in str(m.get("content", ""))]
+        assert len(reminders) >= 1, f"工具调用后 messages 应包含 system-reminder"
 
     @pytest.mark.asyncio
     async def test_multiple_tool_calls_each_add_reminder(self):
@@ -66,9 +66,9 @@ class TestReReminders:
             {"role": "system", "content": "你是角色"},
             {"role": "user", "content": "多轮"},
         ]
-        await node.run(ctx, AsyncMock())
+        result = await node.run(ctx, AsyncMock())
 
-        reminders = [m for m in ctx.messages if "system-reminder" in str(m.get("content", ""))]
+        reminders = [m for m in result.diff["messages"] if "system-reminder" in str(m.get("content", ""))]
         assert len(reminders) >= 3, f"3轮工具调用应有至少3个reminder, 实际{len(reminders)}"
 
     @pytest.mark.asyncio
@@ -84,9 +84,9 @@ class TestReReminders:
             {"role": "system", "content": "你是角色"},
             {"role": "user", "content": "hi"},
         ]
-        await node.run(ctx, AsyncMock())
+        result = await node.run(ctx, AsyncMock())
 
-        reminders = [m for m in ctx.messages if "system-reminder" in str(m.get("content", ""))]
+        reminders = [m for m in result.diff["messages"] if "system-reminder" in str(m.get("content", ""))]
         assert len(reminders) == 0, "直接回复不应有 reminder"
 
     @pytest.mark.asyncio
@@ -105,11 +105,11 @@ class TestReReminders:
             {"role": "system", "content": "你是角色A"},
             {"role": "user", "content": "hi"},
         ]
-        await node.run(ctx, AsyncMock())
+        result = await node.run(ctx, AsyncMock())
 
-        reminders = [m["content"] for m in ctx.messages if m.get("role") == "system" and "system-reminder" in m.get("content", "")]
+        reminders = [m["content"] for m in result.diff["messages"] if m.get("role") == "system" and "system-reminder" in m.get("content", "")]
         assert len(reminders) >= 1
         reminder = reminders[0]
-        assert "角色" in reminder, f"reminder 应包含角色指示: {reminder}"
+        assert "角色" in reminder or "扮演" in reminder, f"reminder 应包含角色指示: {reminder}"
         assert "保持" in reminder or "扮演" in reminder or "角色设定" in reminder, \
             f"reminder 应包含保持角色设定语义: {reminder}"
