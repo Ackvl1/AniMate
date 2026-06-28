@@ -279,3 +279,61 @@ if result.diff:
 | SystemPromptNode | `system_prompt.py` | 待迁移 |
 | MergeNode | `merge.py` | 待迁移 |
 | ReactNode | `react.py` | 待迁移 |
+
+---
+
+## ADR-15: 五层架构（接口层→UI层→表现层→Core层→数据层）
+
+**状态**: ✅ 已批准 (2026-06-28)  
+**背景**: AniMate 需要集成 TTS（语音合成）、3D 虚拟形象（VRM）和外部 API（LLM/Web 搜索等）。当前扁平结构（所有组件平铺在同一层）无法满足以下需求：(1) TTS 和 VRM 引擎需要独立于核心 Agent 逻辑，便于替换或禁用；(2) 本地 CLI 和 Web 服务需要统一的入口抽象，避免两套启动路径；(3) 表现层组件（CosyVoice、VRM）频繁迭代，不应与 Core 层耦合。  
+**决策**: 采用五层架构：
+
+```
+接口层 (FastAPI / CLI)
+    ↓
+UI 层 (Web UI / Terminal)
+    ↓
+表现层 (TTS · VRM · 动画)
+    ↓
+Core 层 (Agent · Graph · Tools · Memory)
+    ↓
+数据层 (SQLite · VectorStore · 文件系统)
+```
+
+各层职责：
+
+| 层 | 职责 | 示例组件 |
+|---|------|---------|
+| **接口层** | 统一入口，本地 CLI + Web 双模 | FastAPI 路由、cli.py REPL |
+| **UI 层** | 用户界面交互 | Web 前端、终端 TUI |
+| **表现层** | 多模态输出（语音+形象） | CosyVoice TTS、VRM 模型、three-vrm 渲染 |
+| **Core 层** | Agent 核心逻辑（图引擎、工具、记忆） | GraphEngine、ReactNode、ToolRegistry |
+| **数据层** | 持久化存储 | SQLite、RAG VectorStore、文件系统 |
+
+**替代方案对比**:
+
+| 方案 | 优点 | 缺点 |
+|------|------|------|
+| 3层（接口→Core→数据） | 最简结构，启动快 | 表现层（TTS/VRM）与 Core 耦合，替换困难；接口层混合 CLI 和 Web 逻辑 |
+| 4层（接口→Core→表现→数据） | 表现层独立 | 接口层仍混合 CLI/Web，双模启动需条件分支，不利于扩展新接口（如 WebSocket） |
+| **5层（选择）** | 表现层完全独立（TTS/VRM 可替换）；接口层统一入口（本地+Web 双模）；依赖方向清晰（只能向下） | 层间通信需要接口契约，初期有少量样板代码 |
+
+**选5层理由**:
+
+1. **表现层独立**: TTS（CosyVoice）和 VRM（three-vrm）可独立替换，不影响 Core 层。未来可新增 Live2D 等表现方案。
+2. **接口层统一入口**: FastAPI 同时服务本地 CLI 和 Web 请求，无需维护两套启动路径。新增接口（WebSocket、gRPC）只需在接口层添加适配器。
+3. **依赖方向清晰**: 依赖只能向下流动（接口层→UI层→表现层→Core层→数据层），禁止反向依赖，降低耦合风险。
+
+**技术选型**:
+
+| 组件 | 选型 | 许可证 | 理由 |
+|------|------|--------|------|
+| TTS | CosyVoice 3.0 | Apache-2.0 | 开源、中文支持好、延迟低 |
+| 3D 形象 | VRM + three-vrm | MIT | 跨平台标准、Web 友好、社区活跃 |
+| 接口层 | FastAPI | MIT | 异步原生、自动文档、性能优异 |
+
+**约束**:
+
+1. **依赖只能向下**: 上层可调用下层接口，下层不可感知上层存在（表现层不 import UI 层）。
+2. **Core 层不改**: Core 层（GraphEngine、Node、ToolRegistry 等）保持现有架构不变，五层重构不触碰 Core 层内部实现。
+3. **表现层可选**: 表现层组件可禁用（无 TTS/VRM 时降级为纯文本输出），不阻塞 Core 层运行。

@@ -94,7 +94,7 @@ class MemoryStore:
         # FTS5 MATCH first（带 boost）
         try:
             rows = self._conn.execute(
-                """SELECT f.*, (f.trust_score + MIN(f.retrieval_count * 0.002, 0.2)) AS effective_score
+                """SELECT f.*, (f.trust_score + MIN(f.retrieval_count * 0.02, 0.2)) AS effective_score
                    FROM facts f
                    JOIN facts_fts ft ON ft.rowid = f.fact_id
                    WHERE facts_fts MATCH ?
