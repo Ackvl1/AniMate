@@ -94,7 +94,9 @@ class MemoryStore:
         # FTS5 MATCH first（带 boost）
         try:
             rows = self._conn.execute(
-                """SELECT f.*, (f.trust_score + MIN(f.retrieval_count * 0.02, 0.2)) AS effective_score
+                """SELECT f.*, MAX(0.05, f.trust_score
+                               - (julianday("now") - julianday(f.created_at)) * 0.01
+                               + MIN(f.retrieval_count * 0.02, 0.2)) AS effective_score
                    FROM facts f
                    JOIN facts_fts ft ON ft.rowid = f.fact_id
                    WHERE facts_fts MATCH ?
@@ -111,7 +113,9 @@ class MemoryStore:
 
         # LIKE fallback（带 boost）
         rows = self._conn.execute(
-            """SELECT *, (trust_score + MIN(retrieval_count * 0.002, 0.2)) AS effective_score
+            """SELECT *, MAX(0.05, trust_score
+                          - (julianday("now") - julianday(created_at)) * 0.01
+                          + MIN(retrieval_count * 0.002, 0.2)) AS effective_score
                FROM facts WHERE content LIKE ?
                ORDER BY effective_score DESC LIMIT ?""",
             (f"%{query}%", limit),
@@ -226,13 +230,34 @@ class MemoryStore:
     # ── 轻量正则提取 ──────────────────────────────────
 
     def extract_quick_facts(self, message: str) -> list[int]:
-        """从用户消息中通过正则快速提取事实（零 API 成本）。"""
+        """从用户消息中通过正则快速提取事实（零 API 成本，15 pattern）。"""
         patterns = [
+            # 1-5: 偏好（保留）
             (re.compile(r"我(?:们)?(?:喜欢|偏好|需要|想(?:要|用))(.+)"), "user_pref"),
             (re.compile(r"我(?:们)?(?:的?)(?:favorite|首选|默认)\s*(?:是)?(.+)"), "user_pref"),
             (re.compile(r"I\s+(?:prefer|like|love|use|want|need)\s+(.+)", re.I), "user_pref"),
             (re.compile(r"my\s+(?:favorite|preferred|default)\s+\w+\s+is\s+(.+)", re.I), "user_pref"),
             (re.compile(r"记住(.+)"), "user_pref"),
+            # 6: 住址
+            (re.compile(r"我住在(.+)"), "user_pref"),
+            # 7: 工作
+            (re.compile(r"我在(.+)(?:工作|上班|公司)"), "project"),
+            # 8: 职业（捕获完整职业名）
+            (re.compile(r"我是(.+(?:工程师|设计师|程序员|医生|老师|学生))"), "user_pref"),
+            # 9: 拥有（捕获完整事实）
+            (re.compile(r"我有(.+)"), "user_pref"),
+            # 10: 计划
+            (re.compile(r"我(?:打算|计划|准备|想要)(.+)"), "user_pref"),
+            # 11: 习惯
+            (re.compile(r"我(?:每天|经常|偶尔)(.+)"), "user_pref"),
+            # 12: 关系
+            (re.compile(r"我(?:妈妈|爸爸|朋友|同事|老板)(.+)"), "general"),
+            # 13: 负偏好
+            (re.compile(r"我不(?:太|怎么)?(?:喜欢|想|要)(.+)"), "user_pref"),
+            # 14: 位置（避开常见动词）
+            (re.compile(r"我(?:在|去)([^，。,\.]{2,15})"), "user_pref"),
+            # 15: 状态
+            (re.compile(r"我(?:最近|刚刚|已经)(.+)"), "general"),
         ]
         extracted = []
         for pat, cat in patterns:

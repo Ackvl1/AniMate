@@ -345,6 +345,8 @@ class Agent:
                     self._messages, session_id=self._session_id
                 )
                 if new_sid and self._memory_provider:
+                    # 压缩前用完整消息做深度提取
+                    self._memory_provider.on_session_end(self._messages, llm=self._llm)
                     self._memory_provider.on_session_switch(new_sid, self._session_id)
                 if new_sid:
                     self._session_id = new_sid
@@ -482,7 +484,12 @@ class Agent:
         logger.info("Agent reset, new session: %s", self._session_id)
 
     def shutdown(self) -> None:
-        """释放所有资源。"""
+        """释放所有资源。退出前提取长期记忆。"""
+        if self._memory_provider and self._messages:
+            try:
+                self._memory_provider.on_session_end(self._messages, llm=self._llm)
+            except Exception:
+                pass
         for client in self._mcp_clients:
             try:
                 client.stop()

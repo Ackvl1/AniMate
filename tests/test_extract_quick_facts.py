@@ -40,7 +40,7 @@ class TestExtractQuickFacts:
         assert fids == []
 
     def test_short_fact_filtered(self, store):
-        """太短的事实（<=3字符）不提取。"""
+        """太短的事实过滤。"""
         fids = store.extract_quick_facts("记住a")
         assert fids == []
 
