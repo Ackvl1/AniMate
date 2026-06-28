@@ -243,7 +243,7 @@ if result.diff:
 
 ## ADR-14: Return-Diff 架构重构
 
-**状态**: ✅ Phase 6.1 完成，Phase 6.2 进行中 (2026-06-26)
+**状态**: ✅ Phase 6.2 完成 (2026-06-28)
 **背景**: 节点直接写 ctx 导致：(1) 测试需要 mock ctx；(2) FIELD_WRITERS 声明但未强制；(3) 节点间隐式耦合。  
 **决策**: 采用 Return-Diff 模式：
 

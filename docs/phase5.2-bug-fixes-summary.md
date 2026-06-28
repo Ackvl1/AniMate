@@ -134,9 +134,9 @@ class ReactNode(Node):
 3. **LangGraph 兼容** — 节点天然适配 `node(state) → dict` 签名
 4. **副作用本地化** — 流式中间态的 emotion/gesture 在 return 时才落定
 
-### 待修 Bug（B4 + B18）
+### 待修 Bug（B18）
 
-- **B4**：更新 `FIELD_WRITERS` 节点名 + GraphEngine 写入校验
+- ~~**B4**：更新 `FIELD_WRITERS` 节点名 + GraphEngine 写入校验~~ → Phase 6.2 已解决（FIELD_WRITERS 自动激活）
 - **B18**：`on_session_end` 深度事实提取到 MemoryStore
 
 ### 待决事项
