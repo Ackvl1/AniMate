@@ -3,18 +3,18 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from animate.core.engine.graph import Graph, GraphEngine
-from animate.core.engine.context import RunContext
-from animate.core.engine.node import Node, NodeResult
+from anima.core.engine.graph import Graph, GraphEngine
+from anima.core.engine.context import RunContext
+from anima.core.engine.node import Node, NodeResult
 
 
 @pytest.mark.asyncio
 async def test_fan_out_join_runs_all_nodes():
     """BSP 引擎 fan_out 三个节点，join 后运行 merge，验证所有节点执行。"""
-    from animate.core.agent.nodes.rag_vector import RAGVectorNode
-    from animate.core.agent.nodes.rag_keyword import RAGKeywordNode
-    from animate.core.agent.nodes.system_prompt import SystemPromptNode
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.rag_vector import RAGVectorNode
+    from anima.core.agent.nodes.rag_keyword import RAGKeywordNode
+    from anima.core.agent.nodes.system_prompt import SystemPromptNode
+    from anima.core.agent.nodes.merge import MergeNode
 
     g = Graph()
     g.add_node("rag_vector", RAGVectorNode(vector_store=MagicMock()))
@@ -28,7 +28,7 @@ async def test_fan_out_join_runs_all_nodes():
 
     ctx = RunContext(user_input="你好")
 
-    with patch("animate.core.rag.embedder.embed") as mock_embed:
+    with patch("anima.core.rag.embedder.embed") as mock_embed:
         mock_embed.return_value = [[0.1, 0.2]]
         engine = g.create_engine(max_steps=10)
         await engine.run(ctx, AsyncMock())
@@ -44,10 +44,10 @@ async def test_fan_out_join_runs_all_nodes():
 @pytest.mark.asyncio
 async def test_rag_node_failure_does_not_block():
     """RAG 节点异常不应阻塞其他节点。"""
-    from animate.core.agent.nodes.rag_vector import RAGVectorNode
-    from animate.core.agent.nodes.rag_keyword import RAGKeywordNode
-    from animate.core.agent.nodes.system_prompt import SystemPromptNode
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.rag_vector import RAGVectorNode
+    from anima.core.agent.nodes.rag_keyword import RAGKeywordNode
+    from anima.core.agent.nodes.system_prompt import SystemPromptNode
+    from anima.core.agent.nodes.merge import MergeNode
 
     failing_vs = MagicMock()
     failing_vs.search.side_effect = Exception("crash")
@@ -64,7 +64,7 @@ async def test_rag_node_failure_does_not_block():
 
     ctx = RunContext(user_input="你好")
 
-    with patch("animate.core.rag.embedder.embed") as mock_embed:
+    with patch("anima.core.rag.embedder.embed") as mock_embed:
         mock_embed.return_value = [[0.1, 0.2]]
         engine = g.create_engine(max_steps=10)
         await engine.run(ctx, AsyncMock())
@@ -77,11 +77,11 @@ async def test_rag_node_failure_does_not_block():
 @pytest.mark.asyncio
 async def test_before_parallel_to_react_flows():
     """从 fan_out→join→merge 到 react 的完整流程。"""
-    from animate.core.agent.nodes.rag_vector import RAGVectorNode
-    from animate.core.agent.nodes.rag_keyword import RAGKeywordNode
-    from animate.core.agent.nodes.system_prompt import SystemPromptNode
-    from animate.core.agent.nodes.merge import MergeNode
-    from animate.core.agent.nodes.react import ReactNode
+    from anima.core.agent.nodes.rag_vector import RAGVectorNode
+    from anima.core.agent.nodes.rag_keyword import RAGKeywordNode
+    from anima.core.agent.nodes.system_prompt import SystemPromptNode
+    from anima.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.react import ReactNode
 
     vs = MagicMock()
     vs.search.return_value = [("知识chunk", 0.9)]
@@ -103,7 +103,7 @@ async def test_before_parallel_to_react_flows():
     ctx = RunContext(user_input="今天天气")
     engine = g.create_engine(max_steps=10)
 
-    with patch("animate.core.rag.embedder.embed") as mock_embed:
+    with patch("anima.core.rag.embedder.embed") as mock_embed:
         mock_embed.return_value = [[0.1, 0.2]]
         await engine.run(ctx, AsyncMock())
 

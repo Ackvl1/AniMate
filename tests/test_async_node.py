@@ -3,9 +3,9 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from animate.core.engine.graph import Graph
-from animate.core.engine.node import Node, NodeResult
-from animate.core.engine.context import RunContext
+from anima.core.engine.graph import Graph
+from anima.core.engine.node import Node, NodeResult
+from anima.core.engine.context import RunContext
 
 
 @pytest.mark.asyncio

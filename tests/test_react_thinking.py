@@ -3,10 +3,10 @@
 import json
 import pytest
 
-from animate.core.engine.context import RunContext
-from animate.core.agent.nodes.react import ReactNode
-from animate.core.llm.models import LLMResult, ToolCall
-from animate.core.tools.registry import ToolRegistry
+from anima.core.engine.context import RunContext
+from anima.core.agent.nodes.react import ReactNode
+from anima.core.llm.models import LLMResult, ToolCall
+from anima.core.tools.registry import ToolRegistry
 
 
 class MockLLM:
@@ -88,7 +88,7 @@ class TestReActThinking:
 
     def test_system_prompt_has_thinking_hint(self):
         """SystemPromptNode 的 system prompt 应该提示 LLM 输出自然思考"""
-        from animate.core.agent.nodes.system_prompt import SystemPromptNode
+        from anima.core.agent.nodes.system_prompt import SystemPromptNode
         prompt = SystemPromptNode.EMOTION_INSTRUCTION
         hint_found = "思考" in prompt or "think" in prompt.lower()
         assert hint_found

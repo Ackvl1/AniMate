@@ -8,7 +8,7 @@ from datetime import datetime
 
 @pytest.fixture
 def db():
-    from animate.core.log import ChatLogDB
+    from anima.core.log import ChatLogDB
     _db = ChatLogDB(db_path=":memory:")
     yield _db
     _db.close()

@@ -1,10 +1,10 @@
 """集成测试 — Agent 全链路（含工具调用 + 重试 + 错误兜底）"""
 
-from animate.core.agent import Agent
-from animate.core.agent.response import AgentResponse
-from animate.core.llm.models import LLMResult, ToolCall
-from animate.core.tools.registry import ToolRegistry
-from animate.core.tools.function.time_tool import TimeTool
+from anima.core.agent import Agent
+from anima.core.agent.response import AgentResponse
+from anima.core.llm.models import LLMResult, ToolCall
+from anima.core.tools.registry import ToolRegistry
+from anima.core.tools.function.time_tool import TimeTool
 
 
 class MockVectorStore:

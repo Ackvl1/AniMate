@@ -2,7 +2,7 @@
 
 import json
 import pytest
-from animate.core.session.store import SessionStore
+from anima.core.session.store import SessionStore
 
 
 def make_msgs(n_rounds: int, session_id: str = "s1") -> list[dict]:

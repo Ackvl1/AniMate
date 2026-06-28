@@ -2,11 +2,11 @@
 > 阶段: Phase 2
 > 概要: 核心加固 — Fail-Closed 工具、Result Budgeting、Re-Reminders、Analysis Scratchpad
 
-# PRD: AniMate 核心加固 — Claude Code 借鉴模式 Phase 1
+# PRD: Anima Agent 核心加固 — Claude Code 借鉴模式 Phase 1
 
 ## Problem Statement
 
-AniMate 的 Node 状态机架构正确、管线清晰，但缺少围绕 Agent Loop 的"支撑系统"。具体问题：
+Anima Agent 的 Node 状态机架构正确、管线清晰，但缺少围绕 Agent Loop 的"支撑系统"。具体问题：
 
 1. **工具无安全分级** — `ExecutePythonTool` 能执行任意代码，但 LLM 和其他代码不知道它是破坏性操作。新工具默认无任何安全限制。
 2. **工具结果无预算控制** — 工具输出原样塞回 messages，即使 1M context 也需要保护不被超长输出撑爆。
@@ -32,12 +32,12 @@ ReflectNode 的评估 prompt 改为"先在 `<analysis>` 中逐维分析，然后
 ## User Stories
 
 1. 作为工具开发者，我创建一个新 LocalTool 时不需要手动声明安全属性，默认就是最严格的安全行为。
-2. 作为 AniMate 用户，我不希望 LLM 不知轻重地调用破坏性工具（如执行代码）。
+2. 作为 Anima Agent 用户，我不希望 LLM 不知轻重地调用破坏性工具（如执行代码）。
 3. 作为 LLM，我知道每个工具的只读/破坏性属性，能自主做出安全决策。
 4. 作为角色对话用户，我不希望在多轮工具调用后 LLM 忘记角色设定。
 5. 作为开发者，我不希望 1MB 的工具输出撑爆 context（即使有 1M 容量）。
 6. 作为维护者，我希望质量评估能稳定给出可靠的 level 判断，减少不必要的重试或漏检。
-7. 作为 AniMate 用户，我不希望质量评估增加额外的 LLM 调用成本。
+7. 作为 Anima Agent 用户，我不希望质量评估增加额外的 LLM 调用成本。
 
 ## Implementation Decisions
 

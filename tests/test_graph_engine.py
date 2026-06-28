@@ -3,9 +3,9 @@
 import pytest
 from unittest.mock import MagicMock
 
-from animate.core.engine.graph import Graph, Edge
-from animate.core.engine.node import Node, NodeResult
-from animate.core.engine.context import RunContext
+from anima.core.engine.graph import Graph, Edge
+from anima.core.engine.node import Node, NodeResult
+from anima.core.engine.context import RunContext
 
 
 class SimpleNode(Node):

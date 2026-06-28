@@ -2,8 +2,8 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from animate.core.engine.context import RunContext
-from animate.core.agent.nodes.reflect import ReflectNode
+from anima.core.engine.context import RunContext
+from anima.core.agent.nodes.reflect import ReflectNode
 
 
 class TestReflectNodeDiff:

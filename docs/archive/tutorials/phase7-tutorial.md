@@ -200,7 +200,7 @@ public class Live2DController : MonoBehaviour
 using UnityEngine;
 using System.Collections.Generic;
 
-[CreateAssetMenu(menuName = "AniMate/MotionMapper")]
+[CreateAssetMenu(menuName = "Anima Agent/MotionMapper")]
 public class MotionMapper : ScriptableObject
 {
     // ── 情绪映射 ──

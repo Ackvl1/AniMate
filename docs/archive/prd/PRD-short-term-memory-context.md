@@ -6,7 +6,7 @@
 
 ## Problem Statement
 
-AniMate 的短期记忆系统存在多个问题：
+Anima Agent 的短期记忆系统存在多个问题：
 
 1. **两套消息源不一致** — `MemoryManager` 持有独立的消息列表，MergeNode 复制到 `ctx.messages`，写完后再写回。两套数据可能不同步。
 2. **FIFO 硬截断，无 token 感知** — `ConversationMemory` 按 `max_turns` 丢弃旧消息，不感知实际 token 消耗，浪费 1M context 容量。

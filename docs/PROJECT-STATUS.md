@@ -1,4 +1,4 @@
-# AniMate 项目状态文档
+# Anima Agent 项目状态文档
 
 > **最后更新**：2026-06-28  
 > **当前阶段**：Phase 6 全部完成 + session_end 实现  
@@ -24,9 +24,9 @@
 
 ## 1. 项目概述
 
-### 1.1 AniMate 是什么
+### 1.1 Anima Agent 是什么
 
-AniMate 是一个**角色化 AI 对话伙伴**，通过 BSP 图引擎驱动的多节点流水线，将大语言模型（LLM）包装在"角色人格皮肤"之下，配合本地 RAG 知识库实现深度角色扮演对话。
+Anima Agent 是一个**角色化 AI 对话伙伴**，通过 BSP 图引擎驱动的多节点流水线，将大语言模型（LLM）包装在"角色人格皮肤"之下，配合本地 RAG 知识库实现深度角色扮演对话。
 
 核心特性：
 - **BSP 图引擎**：支持并行执行、条件回边、冲突检测
@@ -600,5 +600,5 @@ python -m pytest tests/test_node_*_diff.py tests/test_diff_history.py tests/test
 
 ---
 
-> **本文档是 AniMate 项目的单一事实来源（Single Source of Truth）。**  
+> **本文档是 Anima Agent 项目的单一事实来源（Single Source of Truth）。**  
 > **所有架构决策、测试状态、文件统计以本文档为准。**

@@ -1,6 +1,6 @@
 """Tests for MemoryStore trust scoring (Workstream C)."""
 import pytest
-from animate.core.memory.store import MemoryStore
+from anima.core.memory.store import MemoryStore
 
 
 class TestTrustScoring:

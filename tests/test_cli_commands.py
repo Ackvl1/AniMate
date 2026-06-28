@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from animate.core.log import ChatLogDB
+from anima.core.log import ChatLogDB
 
 
 def _make_log_db() -> ChatLogDB:

@@ -12,7 +12,7 @@ async def _noop_async_emit(type, **data):
 
 def _make_ctx(user_input="你好", messages=None):
     """构造最小 RunContext 用于测试。"""
-    from animate.core.engine.context import RunContext
+    from anima.core.engine.context import RunContext
     ctx = RunContext(user_input=user_input)
     if messages:
         ctx.messages = list(messages)
@@ -23,7 +23,7 @@ def _make_ctx(user_input="你好", messages=None):
 
 def _make_react_node(llm=None, tools=None, permission_manager=None):
     """构造 ReactNode 实例。"""
-    from animate.core.agent.nodes.react import ReactNode
+    from anima.core.agent.nodes.react import ReactNode
     if llm is None:
         llm = MagicMock()
     if tools is None:
@@ -41,7 +41,7 @@ class TestReactReturnsSixFieldDiff:
     @pytest.mark.asyncio
     async def test_diff_has_six_fields(self):
         """diff 包含 messages, raw_text, emotion, gesture, llm_call_count, accumulated_usage。"""
-        from animate.core.engine.node import NodeResult
+        from anima.core.engine.node import NodeResult
 
         llm = MagicMock()
         # mock chat_stream 返回一个简单文本（无 tool_call）

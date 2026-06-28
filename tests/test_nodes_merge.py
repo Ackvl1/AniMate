@@ -3,20 +3,20 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from animate.core.engine.context import RunContext
-from animate.core.engine.node import Node, NodeResult
+from anima.core.engine.context import RunContext
+from anima.core.engine.node import Node, NodeResult
 
 
 @pytest.mark.asyncio
 async def test_is_node_subclass():
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     assert isinstance(node, Node)
 
 
 @pytest.mark.asyncio
 async def test_returns_react_next_node():
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="你好")
     ctx.extras["rag_vector_chunks"] = []
@@ -28,7 +28,7 @@ async def test_returns_react_next_node():
 
 @pytest.mark.asyncio
 async def test_merges_vector_and_keyword_chunks():
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="你好")
     ctx.extras["rag_vector_chunks"] = ["v1", "v2"]
@@ -45,7 +45,7 @@ async def test_merges_vector_and_keyword_chunks():
 
 @pytest.mark.asyncio
 async def test_dedups_chunks():
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="你好")
     ctx.extras["rag_vector_chunks"] = ["same", "unique_vec"]
@@ -61,7 +61,7 @@ async def test_dedups_chunks():
 
 @pytest.mark.asyncio
 async def test_no_chunks_omits_rag_section():
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="你好")
     ctx.extras["rag_vector_chunks"] = []
@@ -77,7 +77,7 @@ async def test_no_chunks_omits_rag_section():
 @pytest.mark.asyncio
 async def test_injects_memory_history():
     """MergeNode 不丢失已有的历史消息（新架构：Agent 在 engine.run 前已注入历史 + user_input）。"""
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="你好")
     # 新架构：Agent 在 engine.run 前已把历史 + user_input 注入 ctx.messages
@@ -97,7 +97,7 @@ async def test_injects_memory_history():
 
 @pytest.mark.asyncio
 async def test_injects_user_input():
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="今天天气真好")
     ctx.extras["rag_vector_chunks"] = []
@@ -111,7 +111,7 @@ async def test_injects_user_input():
 
 @pytest.mark.asyncio
 async def test_emits_node_start():
-    from animate.core.agent.nodes.merge import MergeNode
+    from anima.core.agent.nodes.merge import MergeNode
     node = MergeNode()
     ctx = RunContext(user_input="你好")
     ctx.extras["rag_vector_chunks"] = []

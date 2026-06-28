@@ -1,6 +1,6 @@
 """Tests for ChatLogDB new tables + chat_logs extensions (Workstream B)."""
 import pytest
-from animate.core.log.log_db import ChatLogDB
+from anima.core.log.log_db import ChatLogDB
 
 
 class TestToolAudit:

@@ -1,7 +1,7 @@
 """Tests for PermissionManager — HITL 权限管理"""
 import pytest
-from animate.core.agent import PermissionManager
-from animate.core.tools.base import LocalTool
+from anima.core.agent import PermissionManager
+from anima.core.tools.base import LocalTool
 
 
 class ReadOnlyTool(LocalTool):

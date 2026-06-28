@@ -2,9 +2,9 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from animate.core.engine.graph import Graph, GraphEngine
-from animate.core.engine.node import Node, NodeResult
-from animate.core.engine.context import RunContext, FIELD_WRITERS
+from anima.core.engine.graph import Graph, GraphEngine
+from anima.core.engine.node import Node, NodeResult
+from anima.core.engine.context import RunContext, FIELD_WRITERS
 
 
 # ── 测试用节点 ──

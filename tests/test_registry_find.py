@@ -1,6 +1,6 @@
 """Tests for ToolRegistry.find()"""
-from animate.core.tools.registry import ToolRegistry
-from animate.core.tools.base import LocalTool
+from anima.core.tools.registry import ToolRegistry
+from anima.core.tools.base import LocalTool
 
 
 class TestToolRegistryFind:

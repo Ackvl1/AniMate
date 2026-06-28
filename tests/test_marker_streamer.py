@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from animate.core.agent.nodes.marker_streamer import TextMarkerStreamer
+from anima.core.agent.nodes.marker_streamer import TextMarkerStreamer
 
 
 @pytest.mark.asyncio

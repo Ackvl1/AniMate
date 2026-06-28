@@ -1,7 +1,7 @@
 """Tests for DiffHistory persistence (Phase 6.5 — async, 7-field schema)"""
 import pytest
 import asyncio
-from animate.core.engine.diff_history import DiffHistory
+from anima.core.engine.diff_history import DiffHistory
 
 
 class TestDiffHistory:

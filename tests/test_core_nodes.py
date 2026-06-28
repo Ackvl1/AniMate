@@ -2,8 +2,8 @@
 import pytest
 from unittest.mock import AsyncMock
 
-from animate.core.engine.node import Node, NodeResult, AgentEvent
-from animate.core.engine.context import RunContext, RunServices
+from anima.core.engine.node import Node, NodeResult, AgentEvent
+from anima.core.engine.context import RunContext, RunServices
 
 
 class TestNodeABC:

@@ -2,11 +2,11 @@
 > 阶段: Phase 3
 > 概要: BSP 图引擎 + 异步流式 + 序列化 + HITL
 
-# PRD: AniMate Phase 3 — BSP 图引擎 + 异步流式 + 序列化 + HITL
+# PRD: Anima Agent Phase 3 — BSP 图引擎 + 异步流式 + 序列化 + HITL
 
 ## Problem Statement
 
-当前 AniMate 的 `while current: nodes[current].run(ctx)` 线性链架构限制了扩展性：
+当前 Anima Agent 的 `while current: nodes[current].run(ctx)` 线性链架构限制了扩展性：
 
 1. 加一个新 Node 需要改 agent.py 的字典和 while 循环逻辑
 2. ReAct 工具循环、Reflect 重跑、Level 回退三种"绕回"逻辑分别藏在不同地方（ReactNode 内部 while、agent.py 的 `→ node` 日志、reflect.py 的 return）

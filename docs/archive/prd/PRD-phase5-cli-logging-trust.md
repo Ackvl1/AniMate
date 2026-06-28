@@ -2,11 +2,11 @@
 > 阶段: Phase 5
 > 概要: CLI 完整接入 + 日志整改 + 信任分 + 杂项修复
 
-# PRD: AniMate Phase 5 — CLI 完整接入 + 日志整改 + 信任分 + 杂项修复
+# PRD: Anima Agent Phase 5 — CLI 完整接入 + 日志整改 + 信任分 + 杂项修复
 
 ## Problem Statement
 
-AniMate 经历 Phase 2-4 后，核心管线（BSP 图引擎 + 流式输出 + 短期记忆 + 长期记忆）已就绪（371 tests），但有 4 类遗留问题阻碍实际使用：
+Anima Agent 经历 Phase 2-4 后，核心管线（BSP 图引擎 + 流式输出 + 短期记忆 + 长期记忆）已就绪（371 tests），但有 4 类遗留问题阻碍实际使用：
 
 1. **CLI 缺关键命令** — `/compact`（手动压缩）、`/resume`（恢复旧 session）未实现；`config.yaml` 压缩参数未暴露；CLI 启动时不初始化 MemoryProvider / SessionStore，长期记忆和 session rotation 零作用
 2. **日志系统缺陷** — BSP 并行节点耗时数据错误（单计时器）；tool_call arguments/results 未入库；节点异常时 status 仍写 "ok"；SQLite 同步写阻塞事件循环；无日志轮转；两套事实库并行（ChatLogDB.long_term_facts vs MemoryStore.facts）

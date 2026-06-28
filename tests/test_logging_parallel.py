@@ -2,7 +2,7 @@
 import time
 import pytest
 from unittest.mock import MagicMock
-from animate.core.agent.logging import PhaseEventLogger
+from anima.core.agent.logging import PhaseEventLogger
 
 
 class TestLoggingParallel:

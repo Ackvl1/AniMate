@@ -1,9 +1,9 @@
 """Tests for Fail-Closed tool safety attributes (RED - should fail first)"""
 import pytest
-from animate.core.tools.base import LocalTool
-from animate.core.tools.function.time_tool import TimeTool
-from animate.core.tools.function.code_exec import ExecutePythonTool
-from animate.core.tools.function.file_tools import WriteFileTool
+from anima.core.tools.base import LocalTool
+from anima.core.tools.function.time_tool import TimeTool
+from anima.core.tools.function.code_exec import ExecutePythonTool
+from anima.core.tools.function.file_tools import WriteFileTool
 
 
 class TestLocalToolSafety:

@@ -1,7 +1,7 @@
 """Tests for MemoryStore.extract_quick_facts — regex-based fact extraction."""
 
 import pytest
-from animate.core.memory.store import MemoryStore
+from anima.core.memory.store import MemoryStore
 
 
 class TestExtractQuickFacts:

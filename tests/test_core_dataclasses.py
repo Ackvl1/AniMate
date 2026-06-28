@@ -1,6 +1,6 @@
 """Tests for core data classes (RunContext, AgentResponse, ReflectionSignal)"""
-from animate.core.engine.context import RunContext
-from animate.core.agent.response import AgentResponse, ReflectionSignal
+from anima.core.engine.context import RunContext
+from anima.core.agent.response import AgentResponse, ReflectionSignal
 
 
 class TestRunContext:

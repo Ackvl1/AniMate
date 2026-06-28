@@ -2,14 +2,14 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from animate.core.engine.context import RunContext
-from animate.core.engine.node import Node, NodeResult
-from animate.core.agent.nodes import (
+from anima.core.engine.context import RunContext
+from anima.core.engine.node import Node, NodeResult
+from anima.core.agent.nodes import (
     RAGVectorNode, RAGKeywordNode, SystemPromptNode, MergeNode,
     ReactNode, AfterNode, ReflectNode,
 )
-from animate.core.llm.models import LLMResult
-from animate.core.tools.registry import ToolRegistry
+from anima.core.llm.models import LLMResult
+from anima.core.tools.registry import ToolRegistry
 
 
 class TestNodeEvents:

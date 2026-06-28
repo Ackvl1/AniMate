@@ -2,7 +2,7 @@
 
 import pytest
 from dataclasses import fields
-from animate.core.engine.context import RunContext, RunServices
+from anima.core.engine.context import RunContext, RunServices
 
 
 class TestRunServices:

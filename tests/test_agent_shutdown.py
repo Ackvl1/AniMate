@@ -1,7 +1,7 @@
 """Tests for Agent.shutdown() resource cleanup (Workstream A)."""
 import pytest
 from unittest.mock import MagicMock, patch
-from animate.core.agent import Agent
+from anima.core.agent import Agent
 
 
 def _make_agent():

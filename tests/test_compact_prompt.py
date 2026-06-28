@@ -1,7 +1,7 @@
 """Tests for _auto_compact prompt budget optimization (Workstream D)."""
 import pytest
 from unittest.mock import MagicMock
-from animate.core.context.manager import ContextManager
+from anima.core.context.manager import ContextManager
 
 
 class TestCompactPromptBudget:

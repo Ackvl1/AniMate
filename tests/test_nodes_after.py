@@ -4,9 +4,9 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock
 
-from animate.core.engine.context import RunContext
-from animate.core.engine.node import Node, NodeResult
-from animate.core.agent.nodes.after import AfterNode
+from anima.core.engine.context import RunContext
+from anima.core.engine.node import Node, NodeResult
+from anima.core.agent.nodes.after import AfterNode
 
 
 @pytest.mark.asyncio

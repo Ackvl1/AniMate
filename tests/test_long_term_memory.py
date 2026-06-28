@@ -2,10 +2,10 @@
 
 import json
 import pytest
-from animate.core.memory.store import MemoryStore
-from animate.core.memory.default_provider import DefaultMemoryProvider
-from animate.core.agent import Agent
-from animate.core.llm.models import LLMResult
+from anima.core.memory.store import MemoryStore
+from anima.core.memory.default_provider import DefaultMemoryProvider
+from anima.core.agent import Agent
+from anima.core.llm.models import LLMResult
 
 
 class MockLLM:

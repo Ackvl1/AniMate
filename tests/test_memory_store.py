@@ -1,7 +1,7 @@
 """Tests for MemoryStore — SQLite + FTS5 事实存储。"""
 
 import pytest
-from animate.core.memory.store import MemoryStore
+from anima.core.memory.store import MemoryStore
 
 
 class TestMemoryStore:

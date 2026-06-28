@@ -1,7 +1,7 @@
 """Tests for MergeNode — 不 clear ctx.messages，只插 system prompt。"""
 
 import pytest
-from animate.core.agent.nodes.merge import MergeNode
+from anima.core.agent.nodes.merge import MergeNode
 
 
 class TestMergeNodeNoClear:

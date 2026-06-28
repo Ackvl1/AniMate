@@ -6,7 +6,7 @@
 
 ## Problem Statement
 
-AniMate 经历了从「线性 Agent」到「BSP 图引擎」的架构升级，但升级过程中遗留了 4 个死代码文件、2 套并行的核心抽象（Node ABC、RunContext、事件系统）、和 3 个测试旧代码的测试文件。
+Anima Agent 经历了从「线性 Agent」到「BSP 图引擎」的架构升级，但升级过程中遗留了 4 个死代码文件、2 套并行的核心抽象（Node ABC、RunContext、事件系统）、和 3 个测试旧代码的测试文件。
 
 具体问题：
 1. `agent/node.py` — 旧的同步 Node ABC，不被任何生产代码使用

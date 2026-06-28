@@ -2,7 +2,7 @@
 
 import json
 import pytest
-from animate.core.session.store import SessionStore
+from anima.core.session.store import SessionStore
 
 
 class TestSaveMessages:

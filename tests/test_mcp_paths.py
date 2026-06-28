@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from animate.core.tools.mcp.manager import _node_modules, _MCP_DIR
+from anima.core.tools.mcp.manager import _node_modules, _MCP_DIR
 
 
 def test_node_modules_resolves_correctly():

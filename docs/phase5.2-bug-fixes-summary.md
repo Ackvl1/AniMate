@@ -1,4 +1,4 @@
-# AniMate Phase 5.2 — 全量 Bug 修复 + 审计日志接入
+# Anima Agent Phase 5.2 — 全量 Bug 修复 + 审计日志接入
 
 ## Status
 

@@ -1,7 +1,7 @@
 """Tests for TokenCounter — 增量 token 计数器。"""
 
 import pytest
-from animate.core.context.token_counter import TokenCounter
+from anima.core.context.token_counter import TokenCounter
 
 
 class TestTokenCounter:

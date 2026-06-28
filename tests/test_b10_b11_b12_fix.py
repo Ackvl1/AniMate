@@ -4,7 +4,7 @@ import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from animate.core.engine.context import RunContext
+from anima.core.engine.context import RunContext
 
 
 # ══════════════════════════════════════════════════════════════
@@ -18,7 +18,7 @@ class TestB10NoDuplicateUserInput:
     @pytest.mark.asyncio
     async def test_merge_does_not_duplicate_when_user_at_end(self):
         """agent.py 已注入 user_input 时，MergeNode 不再追加。"""
-        from animate.core.agent.nodes.merge import MergeNode
+        from anima.core.agent.nodes.merge import MergeNode
         node = MergeNode()
         ctx = RunContext(user_input="你好")
         ctx.messages = [
@@ -38,7 +38,7 @@ class TestB10NoDuplicateUserInput:
     @pytest.mark.asyncio
     async def test_merge_adds_user_when_none_present(self):
         """极端回退：ctx.messages 没有 user 时，MergeNode 补入。"""
-        from animate.core.agent.nodes.merge import MergeNode
+        from anima.core.agent.nodes.merge import MergeNode
         node = MergeNode()
         ctx = RunContext(user_input="你好")
         ctx.messages = []  # 空，无 user
@@ -55,7 +55,7 @@ class TestB10NoDuplicateUserInput:
     @pytest.mark.asyncio
     async def test_retry_path_no_duplicate(self):
         """模拟 'before' retry 路径：agent.py 注入 + merge 不重复。"""
-        from animate.core.agent.nodes.merge import MergeNode
+        from anima.core.agent.nodes.merge import MergeNode
         node = MergeNode()
         ctx = RunContext(user_input="你好")
         # retry 时 ctx.messages 包含历史 + user_input（来自 agent.py）
@@ -88,7 +88,7 @@ class TestB11NoDoubleFeedback:
     @pytest.mark.asyncio
     async def test_react_skips_feedback_when_marker_set(self):
         """level 4 路径：SystemPromptNode 已设标记，ReactNode 跳过。"""
-        from animate.core.agent.nodes.react import ReactNode
+        from anima.core.agent.nodes.react import ReactNode
 
         fake_llm = MagicMock()
         fake_tools = MagicMock()
@@ -105,7 +105,7 @@ class TestB11NoDoubleFeedback:
         ctx.extras["retry_feedback_injected"] = True  # SystemPromptNode 已设标记
 
         # 模拟 LLM 返回纯文本（无 tool calls）
-        from animate.core.llm.models import LLMResult
+        from anima.core.llm.models import LLMResult
         fake_llm.chat_stream_async = AsyncMock()
         fake_llm.chat_stream = MagicMock(return_value=iter([
             {"type": "delta", "content": "你好呀～"},
@@ -126,8 +126,8 @@ class TestB11NoDoubleFeedback:
     @pytest.mark.asyncio
     async def test_react_injects_feedback_when_no_marker(self):
         """level 2-3 路径：SystemPromptNode 没跑，ReactNode 注入 feedback。"""
-        from animate.core.agent.nodes.react import ReactNode
-        from animate.core.llm.models import LLMResult
+        from anima.core.agent.nodes.react import ReactNode
+        from anima.core.llm.models import LLMResult
 
         fake_llm = MagicMock()
         fake_tools = MagicMock()
@@ -166,7 +166,7 @@ class TestB11MarkerClearing:
     @pytest.mark.asyncio
     async def test_reflect_clears_marker_on_react_routing(self):
         """level 2-3 retry 时标记被清除。"""
-        from animate.core.agent.nodes.reflect import ReflectNode
+        from anima.core.agent.nodes.reflect import ReflectNode
 
         fake_llm = MagicMock()
         node = ReflectNode(fake_llm)
@@ -179,7 +179,7 @@ class TestB11MarkerClearing:
         ctx.extras["retry_feedback_injected"] = True
 
         # LLM 返回 level 2（需重生成）
-        from animate.core.llm.models import LLMResult
+        from anima.core.llm.models import LLMResult
         fake_llm.chat.return_value = LLMResult(
             content="<analysis>测试</analysis>\n<summary>{\"level\": 2, \"feedback\": \"改进\"}</summary>",
             tool_calls=None
@@ -193,7 +193,7 @@ class TestB11MarkerClearing:
     @pytest.mark.asyncio
     async def test_reflect_preserves_marker_on_before_routing(self):
         """level 4 retry 路由 'before' 时，标记不被清除（由 SystemPromptNode 负责）。"""
-        from animate.core.agent.nodes.reflect import ReflectNode
+        from anima.core.agent.nodes.reflect import ReflectNode
 
         fake_llm = MagicMock()
         node = ReflectNode(fake_llm)
@@ -204,7 +204,7 @@ class TestB11MarkerClearing:
         ctx.is_retry = False
         ctx.extras["retry_feedback_injected"] = True  # 已有标记
 
-        from animate.core.llm.models import LLMResult
+        from anima.core.llm.models import LLMResult
         fake_llm.chat.return_value = LLMResult(
             content="<analysis>测试</analysis>\n<summary>{\"level\": 4, \"feedback\": \"需要重检索\"}</summary>",
             tool_calls=None
@@ -228,13 +228,13 @@ class TestB12ChatAsync:
 
     def test_client_has_chat_async(self):
         """OpenAICompatibleClient 定义了 chat_async 方法。"""
-        from animate.core.llm.client import OpenAICompatibleClient
+        from anima.core.llm.client import OpenAICompatibleClient
         assert hasattr(OpenAICompatibleClient, "chat_async")
         assert asyncio.iscoroutinefunction(OpenAICompatibleClient.chat_async)
 
     def test_context_manager_has_compress_async(self):
         """ContextManager 定义了 compress_async 方法。"""
-        from animate.core.context.manager import ContextManager
+        from anima.core.context.manager import ContextManager
         cm = ContextManager(model_limit=100_000)
         assert hasattr(cm, "compress_async")
         assert asyncio.iscoroutinefunction(cm.compress_async)
@@ -242,8 +242,8 @@ class TestB12ChatAsync:
     @pytest.mark.asyncio
     async def test_compress_async_calls_chat_async(self):
         """compress_async 的 LLM 摘要使用 chat_async 而非同步 chat。"""
-        from animate.core.context.manager import ContextManager
-        from animate.core.llm.models import LLMResult
+        from anima.core.context.manager import ContextManager
+        from anima.core.llm.models import LLMResult
 
         fake_llm = MagicMock()
         fake_llm.chat_async = AsyncMock(return_value=LLMResult(content="摘要内容", tool_calls=None))
@@ -285,7 +285,7 @@ class TestB12ChatAsync:
     @pytest.mark.asyncio
     async def test_compress_async_returns_none_when_too_few_messages(self):
         """消息过少时 compress_async 返回 None。"""
-        from animate.core.context.manager import ContextManager
+        from anima.core.context.manager import ContextManager
 
         cm = ContextManager(model_limit=100_000, head_rounds=2, tail_rounds=2)
         messages = [{"role": "user", "content": "hi"}]
@@ -303,7 +303,7 @@ class TestB7StreamOptions:
 
     def test_sync_chat_kwargs_no_stream_options(self):
         """chat() 构建的 kwargs 不含 stream_options。"""
-        from animate.core.llm.client import OpenAICompatibleClient
+        from anima.core.llm.client import OpenAICompatibleClient
 
         cfg = MagicMock()
         cfg.default_model = "test"
@@ -324,7 +324,7 @@ class TestB7StreamOptions:
 
     def test_stream_chat_kwargs_has_stream_options(self):
         """chat_stream() 构建的 kwargs 包含 stream_options。"""
-        from animate.core.llm.client import OpenAICompatibleClient
+        from anima.core.llm.client import OpenAICompatibleClient
 
         cfg = MagicMock()
         cfg.default_model = "test"

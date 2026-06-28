@@ -1,9 +1,9 @@
 """Tests for Agent 门面（集成测试）"""
 
-from animate.core.agent import Agent
-from animate.core.engine.context import RunContext
-from animate.core.agent.response import AgentResponse
-from animate.core.llm.models import LLMResult
+from anima.core.agent import Agent
+from anima.core.engine.context import RunContext
+from anima.core.agent.response import AgentResponse
+from anima.core.llm.models import LLMResult
 
 
 class MockLLM:

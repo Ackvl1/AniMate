@@ -1,10 +1,10 @@
 from pathlib import Path
-from animate.core.rag.KeywordStore import KeywordStore
-from animate.core.rag.chunker import chunk_text
-from animate.core.rag.embedder import embed
-from animate.core.rag.loader import load_documents
-from animate.core.rag.VectorStore import VectorStore
-from animate.core.paths import data_root
+from anima.core.rag.KeywordStore import KeywordStore
+from anima.core.rag.chunker import chunk_text
+from anima.core.rag.embedder import embed
+from anima.core.rag.loader import load_documents
+from anima.core.rag.VectorStore import VectorStore
+from anima.core.paths import data_root
 
 if __name__ == "__main__":
 

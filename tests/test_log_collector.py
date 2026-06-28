@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from animate.core.engine.node import AgentEvent
-from animate.core.log.collector import LogCollector
-from animate.core.log.log_db import ChatLogDB
+from anima.core.engine.node import AgentEvent
+from anima.core.log.collector import LogCollector
+from anima.core.log.log_db import ChatLogDB
 
 
 @pytest.fixture

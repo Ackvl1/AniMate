@@ -1,7 +1,7 @@
 """Tests for Agent.compact() and Agent.resume() (Workstream A)."""
 import pytest
 from unittest.mock import MagicMock
-from animate.core.agent import Agent
+from anima.core.agent import Agent
 
 
 def _make_agent(llm=None):

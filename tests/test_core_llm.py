@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import openai
 
-from animate.core.llm import OpenAICompatibleClient, LLMResult
-from animate.core.errors import LLMError
+from anima.core.llm import OpenAICompatibleClient, LLMResult
+from anima.core.errors import LLMError
 
 
 def _make_mock_response(content: str, model="test-model"):

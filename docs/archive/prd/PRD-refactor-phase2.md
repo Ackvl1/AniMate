@@ -2,11 +2,11 @@
 > 阶段: Phase 2
 > 概要: 目录重构 + 数据层 + 日志
 
-# PRD: AniMate 架构重构 Phase 2 — 目录重组 + 数据层 + 日志
+# PRD: Anima Agent 架构重构 Phase 2 — 目录重组 + 数据层 + 日志
 
 ## Problem Statement
 
-当前 AniMate 项目启动已优化至 ~5s，流式输出已实现，但有以下结构性问题阻碍后续多模态和 VTuber 路线：
+当前 Anima Agent 项目启动已优化至 ~5s，流式输出已实现，但有以下结构性问题阻碍后续多模态和 VTuber 路线：
 
 1. `node_modules/` 位于项目根目录，是 Python 项目中的异物，与项目气质不搭
 2. `animate/rag/` 游离于 `animate/core/` 之外，RAG 作为核心推理管线的一部分应归属 core

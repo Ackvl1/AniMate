@@ -1,6 +1,6 @@
 """Tests for NodeResult diff field (Phase 6)"""
 import pytest
-from animate.core.engine.node import NodeResult
+from anima.core.engine.node import NodeResult
 
 
 class TestNodeResultDiff:

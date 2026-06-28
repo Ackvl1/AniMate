@@ -1,6 +1,6 @@
 """Tests for RunContext snapshot/restore (Phase 6)"""
 import pytest
-from animate.core.engine.context import RunContext
+from anima.core.engine.context import RunContext
 
 
 class TestRunContextSnapshot:

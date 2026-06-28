@@ -2,8 +2,8 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from animate.core.engine.context import RunContext
-from animate.core.agent.nodes.memory_node import MemoryNode
+from anima.core.engine.context import RunContext
+from anima.core.agent.nodes.memory_node import MemoryNode
 
 
 class TestMemoryNodeDiff:

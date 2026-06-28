@@ -1,9 +1,9 @@
 """Tests for Agent retry 过渡句注入"""
 
 import json
-from animate.core.agent import Agent
-from animate.core.agent.response import AgentResponse
-from animate.core.llm.models import LLMResult
+from anima.core.agent import Agent
+from anima.core.agent.response import AgentResponse
+from anima.core.llm.models import LLMResult
 
 
 class MockLLM:

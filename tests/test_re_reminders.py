@@ -2,10 +2,10 @@
 import pytest
 from unittest.mock import AsyncMock
 
-from animate.core.engine.context import RunContext
-from animate.core.agent.nodes.react import ReactNode
-from animate.core.llm.models import LLMResult, ToolCall
-from animate.core.tools.registry import ToolRegistry
+from anima.core.engine.context import RunContext
+from anima.core.agent.nodes.react import ReactNode
+from anima.core.llm.models import LLMResult, ToolCall
+from anima.core.tools.registry import ToolRegistry
 
 
 class MockStreamLLM:

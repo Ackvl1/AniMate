@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 
-from animate.core.agent import Agent
-from animate.core.agent.response import AgentResponse
+from anima.core.agent import Agent
+from anima.core.agent.response import AgentResponse
 
 
 # ── Mock LLM（流式） ──────────────────────────────────────

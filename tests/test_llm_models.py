@@ -1,7 +1,7 @@
 """Tests for LLMResult and ToolCall dataclasses"""
 
 import json
-from animate.core.llm.models import LLMResult, ToolCall
+from anima.core.llm.models import LLMResult, ToolCall
 
 
 class TestToolCall:

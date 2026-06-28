@@ -1,4 +1,4 @@
-# AniMate 路线图：Phase 7-9 — 表现层 · 接口层 · 桌面应用
+# Anima Agent 路线图：Phase 7-9 — 表现层 · 接口层 · 桌面应用
 
 > 最后更新：2026-06-28
 > 前置条件：Phase 6.2 ✅（Return-Diff 架构重构完成，493 tests passed）
@@ -202,7 +202,7 @@ async for event in agent.chat_stream(user_input):
 
 import { VRMExpressionPresetName } from '@pixiv/three-vrm';
 
-// AniMate emotion → VRM Expression 映射
+// Anima Agent emotion → VRM Expression 映射
 const EMOTION_TO_VRM: Record<string, Partial<Record<VRMExpressionPresetName, number>>> = {
   happy:        { happy: 0.8,  mouthSmile: 0.6 },
   sad:          { sad: 0.7,   mouthFrown: 0.4,  eyesClosed: 0.3 },
@@ -463,7 +463,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json, asyncio
 
-app = FastAPI(title="AniMate API", version="0.1.0")
+app = FastAPI(title="Anima Agent API", version="0.1.0")
 
 class ChatRequest(BaseModel):
     session_id: str
@@ -704,7 +704,7 @@ async def main():
     agent = create_agent()
     adapter = CLIAdapter()
 
-    print("AniMate REPL (Ctrl+C to exit)")
+    print("Anima Agent REPL (Ctrl+C to exit)")
     while True:
         try:
             user_input = input("\n> ").strip()
@@ -837,7 +837,7 @@ def create_agent_factory(config_path: str = "config.yaml"):
 // src-tauri/tauri.conf.json
 {
   "package": {
-    "productName": "AniMate",
+    "productName": "Anima Agent",
     "version": "0.1.0"
   },
   "build": {
@@ -913,7 +913,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'AniMate ${{ github.ref_name }}'
+          releaseName: 'Anima Agent ${{ github.ref_name }}'
 ```
 
 #### 文件改动

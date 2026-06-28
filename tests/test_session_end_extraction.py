@@ -37,7 +37,7 @@ class TestSessionEndExtraction:
 
     def test_skip_when_fewer_than_4_user_messages(self):
         """user 消息 < 4 条 → 跳过提取，不调 LLM"""
-        from animate.core.memory.default_provider import DefaultMemoryProvider
+        from anima.core.memory.default_provider import DefaultMemoryProvider
         provider = DefaultMemoryProvider()
         messages = [
             {"role": "user", "content": "你好"},
@@ -51,7 +51,7 @@ class TestSessionEndExtraction:
 
     def test_extract_facts_from_full_conversation(self):
         """user 消息 ≥ 4 条 → 调 LLM → 解析 → add_fact"""
-        from animate.core.memory.default_provider import DefaultMemoryProvider
+        from anima.core.memory.default_provider import DefaultMemoryProvider
         provider = DefaultMemoryProvider()
         messages = [
             {"role": "user", "content": "我喜欢弹钢琴"},
@@ -71,7 +71,7 @@ class TestSessionEndExtraction:
 
     def test_persona_dialogue_not_extracted(self):
         """assistant 的表演性台词不入库（prompt 约束生效）"""
-        from animate.core.memory.default_provider import DefaultMemoryProvider
+        from anima.core.memory.default_provider import DefaultMemoryProvider
         provider = DefaultMemoryProvider()
         messages = [
             {"role": "user", "content": "你好"},
@@ -87,7 +87,7 @@ class TestSessionEndExtraction:
 
     def test_dedup_after_normalization(self):
         """归一化后 "SC2" → "星际争霸2" 与已存事实去重"""
-        from animate.core.memory.default_provider import DefaultMemoryProvider
+        from anima.core.memory.default_provider import DefaultMemoryProvider
         provider = DefaultMemoryProvider()
         provider._store.add_fact("用户喜欢星际争霸2", trust_score=0.3)
         messages = _make_user_msgs(4)
@@ -99,7 +99,7 @@ class TestSessionEndExtraction:
 
     def test_llm_failure_does_not_crash_reset(self):
         """LLM 调用失败 → on_session_end 不抛异常"""
-        from animate.core.memory.default_provider import DefaultMemoryProvider
+        from anima.core.memory.default_provider import DefaultMemoryProvider
         provider = DefaultMemoryProvider()
         messages = _make_user_msgs(4)
         llm = MockLLM(raise_exception=True)
@@ -108,9 +108,9 @@ class TestSessionEndExtraction:
 
     def test_dual_write_state_and_audit(self):
         """fact 同时写入 MemoryStore（状态层）和 ChatLogDB（审计层）"""
-        from animate.core.memory.default_provider import DefaultMemoryProvider
-        from animate.core.memory.store import MemoryStore
-        from animate.core.log import ChatLogDB
+        from anima.core.memory.default_provider import DefaultMemoryProvider
+        from anima.core.memory.store import MemoryStore
+        from anima.core.log import ChatLogDB
         store = MemoryStore(":memory:")
         log_db = ChatLogDB(":memory:")
         provider = DefaultMemoryProvider(store=store, log_db=log_db)

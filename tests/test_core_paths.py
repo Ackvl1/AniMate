@@ -1,7 +1,7 @@
 """Tests for animate/core/paths.py — data directory resolution."""
 
 from pathlib import Path
-from animate.core.paths import (
+from anima.core.paths import (
     project_root,
     data_root,
     documents_dir,

@@ -2,8 +2,8 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock
-from animate.core.engine.context import RunContext
-from animate.core.agent.nodes.after import AfterNode
+from anima.core.engine.context import RunContext
+from anima.core.agent.nodes.after import AfterNode
 
 
 class TestAfterNodeDiff:

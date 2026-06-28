@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 import pytest
 
-from animate.core.config import LLM_CATALOG
+from anima.core.config import LLM_CATALOG
 
 
 class TestModelCatalog:
@@ -34,7 +34,7 @@ class TestModelCatalog:
 
     def test_find_model_in_catalog(self):
         """通过模型名找到对应的 provider"""
-        from animate.core.llm.models import find_provider_by_model
+        from anima.core.llm.models import find_provider_by_model
         assert find_provider_by_model("deepseek-v4-flash") == "deepseek"
         assert find_provider_by_model("glm-4.7") == "zhipu"
         assert find_provider_by_model("qwen-3") == "qwen"
@@ -56,8 +56,8 @@ class TestLLMSwitchProvider:
 
     def test_switch_provider_changes_model(self):
         """switch_provider 后 _model 切换为目标模型的默认值"""
-        from animate.core.llm.client import OpenAICompatibleClient
-        from animate.core.config import set_default_provider
+        from anima.core.llm.client import OpenAICompatibleClient
+        from anima.core.config import set_default_provider
 
         # 先把默认 provider 设为 deepseek
         set_default_provider("deepseek")
@@ -73,8 +73,8 @@ class TestLLMSwitchProvider:
 
     def test_switch_provider_creates_new_client(self):
         """switch_provider 后模型已变更（通过 model 名验证）"""
-        from animate.core.llm.client import OpenAICompatibleClient
-        from animate.core.config import set_default_provider
+        from anima.core.llm.client import OpenAICompatibleClient
+        from anima.core.config import set_default_provider
 
         set_default_provider("deepseek")
 
@@ -87,8 +87,8 @@ class TestLLMSwitchProvider:
 
     def test_switch_to_specific_model(self):
         """switch_provider 支持指定具体模型名"""
-        from animate.core.llm.client import OpenAICompatibleClient
-        from animate.core.config import set_default_provider
+        from anima.core.llm.client import OpenAICompatibleClient
+        from anima.core.config import set_default_provider
 
         set_default_provider("deepseek")
 
@@ -99,8 +99,8 @@ class TestLLMSwitchProvider:
 
     def test_switch_unknown_provider_doesnt_crash(self):
         """切到不存在的 provider 时保持当前配置"""
-        from animate.core.llm.client import OpenAICompatibleClient
-        from animate.core.config import set_default_provider
+        from anima.core.llm.client import OpenAICompatibleClient
+        from anima.core.config import set_default_provider
 
         set_default_provider("deepseek")
 
@@ -116,8 +116,8 @@ class TestLLMSwitchProvider:
 
     def test_switch_provider_returns_model_name(self):
         """switch_provider 成功时返回模型名"""
-        from animate.core.llm.client import OpenAICompatibleClient
-        from animate.core.config import set_default_provider
+        from anima.core.llm.client import OpenAICompatibleClient
+        from anima.core.config import set_default_provider
 
         set_default_provider("deepseek")
 
@@ -128,8 +128,8 @@ class TestLLMSwitchProvider:
 
     def test_switch_provider_missing_api_key_returns_none(self, monkeypatch):
         """API Key 缺失时返回 None"""
-        from animate.core.llm.client import OpenAICompatibleClient
-        from animate.core.config import set_default_provider
+        from anima.core.llm.client import OpenAICompatibleClient
+        from anima.core.config import set_default_provider
 
         set_default_provider("deepseek")
         monkeypatch.delenv("QWEN_API_KEY", raising=False)

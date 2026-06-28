@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-AniMate 的 BSP 图引擎当前使用"节点直接写 ctx"模式。这种模式存在以下问题：
+Anima Agent 的 BSP 图引擎当前使用"节点直接写 ctx"模式。这种模式存在以下问题：
 
 1. **状态变更不可追溯** — 无法知道哪个节点修改了哪个字段
 2. **FIELD_WRITERS 未强制** — 节点可以越权写入任意字段

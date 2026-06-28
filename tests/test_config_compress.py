@@ -1,6 +1,6 @@
 """Tests for config.yaml compress parameters (Workstream A)."""
 import pytest
-from animate.core.context.manager import ContextManager
+from anima.core.context.manager import ContextManager
 
 
 class TestConfigCompress:

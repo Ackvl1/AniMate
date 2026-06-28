@@ -3,9 +3,9 @@
 import json
 import pytest
 
-from animate.core.log import ChatLogDB
-from animate.core.agent import Agent, AgentResponse
-from animate.core.llm.models import LLMResult
+from anima.core.log import ChatLogDB
+from anima.core.agent import Agent, AgentResponse
+from anima.core.llm.models import LLMResult
 
 
 class MockLLM:

@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, AsyncMock, patch, PropertyMock
 
 import pytest
 
-from animate.core.engine.context import RunContext
-from animate.core.llm.models import LLMResult
+from anima.core.engine.context import RunContext
+from anima.core.llm.models import LLMResult
 
 
 def _make_llm_mock(stream_events):
@@ -22,7 +22,7 @@ class TestB2StreamingTokenFallback:
     @pytest.mark.asyncio
     async def test_accumulates_usage_when_stream_provides_usage(self):
         """OpenAI 风格：流式有 usage 块 → 直接累加，不调 tiktoken。"""
-        from animate.core.agent.nodes.react import ReactNode
+        from anima.core.agent.nodes.react import ReactNode
 
         fake_llm = _make_llm_mock([
             {"type": "delta", "content": "hello"},
@@ -37,7 +37,7 @@ class TestB2StreamingTokenFallback:
         ctx.messages = [{"role": "user", "content": "hi"}]
 
         with patch.object(node, '_build_tool_calls', return_value=None):
-            with patch("animate.core.agent.nodes.react.estimate_tokens",
+            with patch("anima.core.agent.nodes.react.estimate_tokens",
                        return_value=0) as mock_est:
                 result = await node._stream_round(
                     list(ctx.messages), None, ctx, 1, AsyncMock()
@@ -49,7 +49,7 @@ class TestB2StreamingTokenFallback:
     @pytest.mark.asyncio
     async def test_falls_back_to_tiktoken_when_no_usage(self):
         """DeepSeek 风格：流式无 usage 块 → 调 estimate_tokens 后备。"""
-        from animate.core.agent.nodes.react import ReactNode
+        from anima.core.agent.nodes.react import ReactNode
 
         fake_llm = _make_llm_mock([
             {"type": "delta", "content": "hello"},
@@ -64,7 +64,7 @@ class TestB2StreamingTokenFallback:
         ctx.accumulated_usage = 0
 
         with patch.object(node, '_build_tool_calls', return_value=None):
-            with patch("animate.core.agent.nodes.react.estimate_tokens",
+            with patch("anima.core.agent.nodes.react.estimate_tokens",
                        return_value=42) as mock_est:
                 result = await node._stream_round(
                     list(ctx.messages), None, ctx, 1, AsyncMock()
@@ -76,7 +76,7 @@ class TestB2StreamingTokenFallback:
     @pytest.mark.asyncio
     async def test_estimate_tokens_returns_reasonable_value(self):
         """estimate_tokens 返回合理的估算值。"""
-        from animate.core.memory.conversation import estimate_tokens
+        from anima.core.memory.conversation import estimate_tokens
         msgs = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Hello"},
@@ -89,7 +89,7 @@ class TestB2StreamingTokenFallback:
     @pytest.mark.asyncio
     async def test_only_fallback_once_per_round(self):
         """每个 stream_round 只后备一次，不重复累加。"""
-        from animate.core.agent.nodes.react import ReactNode
+        from anima.core.agent.nodes.react import ReactNode
 
         fake_llm = _make_llm_mock([
             {"type": "delta", "content": "hello"},
@@ -104,7 +104,7 @@ class TestB2StreamingTokenFallback:
         ctx.accumulated_usage = 10  # 已有来自 ReflectNode 的累计
 
         with patch.object(node, '_build_tool_calls', return_value=None):
-            with patch("animate.core.agent.nodes.react.estimate_tokens",
+            with patch("anima.core.agent.nodes.react.estimate_tokens",
                        return_value=42) as mock_est:
                 result = await node._stream_round(
                     list(ctx.messages), None, ctx, 1, AsyncMock()

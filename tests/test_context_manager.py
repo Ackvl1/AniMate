@@ -1,7 +1,7 @@
 """Tests for ContextManager — token 跟踪 + 压缩决策 + 渐进压缩。"""
 
 import pytest
-from animate.core.context.manager import ContextManager
+from anima.core.context.manager import ContextManager
 
 
 class MockLLM:

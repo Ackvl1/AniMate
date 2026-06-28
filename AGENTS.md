@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-AniMate is a character-roleplay agent that wraps an LLM in a "persona skin" backed by a local RAG knowledge base.
+Anima Agent is a character-roleplay agent that wraps an LLM in a "persona skin" backed by a local RAG knowledge base.
 
 ## Commands
 

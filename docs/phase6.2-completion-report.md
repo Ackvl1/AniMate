@@ -443,7 +443,7 @@ g.add_conditional_edge("reflect", reflect_router, {
 
 ## 十、总结
 
-Phase 6.2 完成了 AniMate BSP 图引擎从"直接写 ctx"到"返回 diff"的全量迁移：
+Phase 6.2 完成了 Anima Agent BSP 图引擎从"直接写 ctx"到"返回 diff"的全量迁移：
 
 1. **8 个节点全部迁移**：MemoryNode、RAGVectorNode、RAGKeywordNode、SystemPromptNode、MergeNode、ReactNode、AfterNode、ReflectNode
 2. **6 个 Bug 修复**：AfterNode 空分支、SystemPromptNode 双写、重复 except、Agent 兜底 emit、MemoryNode 死字段、后备记忆通路

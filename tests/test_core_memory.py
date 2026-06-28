@@ -1,6 +1,6 @@
 """Tests for conversation utility functions。"""
 
-from animate.core.memory.conversation import count_rounds, estimate_tokens, find_message_boundaries
+from anima.core.memory.conversation import count_rounds, estimate_tokens, find_message_boundaries
 
 
 class TestCountRounds:

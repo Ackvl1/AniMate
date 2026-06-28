@@ -1,6 +1,6 @@
 """Tests for tool_call arguments snip (Workstream D)."""
 import pytest
-from animate.core.context.manager import ContextManager
+from anima.core.context.manager import ContextManager
 
 
 class TestToolArgsSnip:

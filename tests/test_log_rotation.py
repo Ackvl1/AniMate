@@ -2,7 +2,7 @@
 import os
 import time
 import pytest
-from animate.core.log.log_db import ChatLogDB
+from anima.core.log.log_db import ChatLogDB
 
 
 class TestLogRotation:

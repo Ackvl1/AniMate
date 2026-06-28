@@ -6,7 +6,7 @@
 
 ## Problem Statement
 
-AniMate 的图引擎 (BSP) 已迭代到 7 个并行/串行节点 + session rotation + 长期记忆，但日志系统停留在 Phase 4 的原始设计，存在 10+ 个问题，覆盖三个维度：数据正确性、覆盖面、工程接入。
+Anima Agent 的图引擎 (BSP) 已迭代到 7 个并行/串行节点 + session rotation + 长期记忆，但日志系统停留在 Phase 4 的原始设计，存在 10+ 个问题，覆盖三个维度：数据正确性、覆盖面、工程接入。
 
 ### 具体问题
 

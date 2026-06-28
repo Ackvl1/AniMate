@@ -2,9 +2,9 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from animate.core.engine.context import RunContext
-from animate.core.agent.nodes.react import ReactNode
-from animate.core.tools.registry import ToolRegistry
+from anima.core.engine.context import RunContext
+from anima.core.agent.nodes.react import ReactNode
+from anima.core.tools.registry import ToolRegistry
 
 
 class TestReactNodeRetry:

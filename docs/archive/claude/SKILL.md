@@ -1,11 +1,11 @@
 ---
 name: animate-dev
-description: Use this skill when working on the AniMate Animal Character Agent repo. Covers Phase 1 conventions — pure OpenAI/DashScope SDK (no LangChain/LlamaIndex/Chroma/FAISS), self-built numpy cosine-similarity vector store, single cat persona loaded from prompts/cat_persona.txt, and the two-layer "skill" distinction (animate/skills/ for runtime agent capabilities vs .claude/skills/ for IDE assistance). Trigger when editing animate/, data/, prompts/, or answering questions about RAG retrieval, the cat persona, or how to add a new agent capability in this repo.
+description: Use this skill when working on the Anima Agent Animal Character Agent repo. Covers Phase 1 conventions — pure OpenAI/DashScope SDK (no LangChain/LlamaIndex/Chroma/FAISS), self-built numpy cosine-similarity vector store, single cat persona loaded from prompts/cat_persona.txt, and the two-layer "skill" distinction (animate/skills/ for runtime agent capabilities vs .claude/skills/ for IDE assistance). Trigger when editing animate/, data/, prompts/, or answering questions about RAG retrieval, the cat persona, or how to add a new agent capability in this repo.
 ---
 
-# AniMate Development Skill
+# Anima Agent Development Skill
 
-Conventions for working on the **AniMate Animal Character Agent** project. Read this before adding code or proposing architecture changes.
+Conventions for working on the **Anima Agent Animal Character Agent** project. Read this before adding code or proposing architecture changes.
 
 ## Project state
 

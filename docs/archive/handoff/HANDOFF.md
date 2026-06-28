@@ -1,10 +1,10 @@
-# Handoff: AniMate Phase 5 — CLI 完整接入 + 日志整改 + 信任分
+# Handoff: Anima Agent Phase 5 — CLI 完整接入 + 日志整改 + 信任分
 
 ## Project Overview
 
-AniMate — 角色化 AI Agent 框架，基于 BSP 图引擎。Phase 5 完成了 CLI 命令接入、日志系统整改、信任分系统和多项杂项修复。
+Anima Agent — 角色化 AI Agent 框架，基于 BSP 图引擎。Phase 5 完成了 CLI 命令接入、日志系统整改、信任分系统和多项杂项修复。
 
-Repo: `git@github.com:Ackvl1/AniMate.git` (branch: dev)
+Repo: `git@github.com:Ackvl1/Anima Agent.git` (branch: dev)
 
 ## Completed Work
 

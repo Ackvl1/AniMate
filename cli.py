@@ -1,4 +1,4 @@
-"""AniMate CLI — 命令系统 + 调试模式 + 模型切换（图引擎版）"""
+"""Anima Agent CLI — 命令系统 + 调试模式 + 模型切换（图引擎版）"""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ import os
 import shlex
 from pathlib import Path
 
-from animate.core.agent import Agent, AgentResponse
-from animate.core.llm import OpenAICompatibleClient, find_provider_by_model
-from animate.core.config import LLM_CATALOG
-from animate.core.log.logger import set_log_level
-from animate.core.log.log_db import ChatLogDB
-from animate.core.agent import PermissionManager
-from animate.io.Console import ConsoleInput, ConsoleOutput
+from anima.core.agent import Agent, AgentResponse
+from anima.core.llm import OpenAICompatibleClient, find_provider_by_model
+from anima.core.config import LLM_CATALOG
+from anima.core.log.logger import set_log_level
+from anima.core.log.log_db import ChatLogDB
+from anima.core.agent import PermissionManager
+from anima.io.Console import ConsoleInput, ConsoleOutput
 
 emotion_icons = {
     "calm": "😶", "pleased": "🌸", "cold": "❄️",
@@ -190,8 +190,8 @@ def handle_log_command(parts: list[str], log_db: ChatLogDB) -> bool:
                 print(f"  [{r['id']}] {r['created_at'][:19]} | {r['emotion'] or '-'} | {r['response_text'][:60]}…")
         else:
             # 列出所有 session
-            from animate.core.session.store import SessionStore
-            from animate.core.paths import sessions_dir
+            from anima.core.session.store import SessionStore
+            from anima.core.paths import sessions_dir
             try:
                 ss = SessionStore(db_path=str(sessions_dir() / "sessions.db"))
                 sessions = ss.list_sessions()
@@ -457,17 +457,17 @@ def main():
     perm_mgr = PermissionManager(callback=_permission_callback)
 
     # ── 日志 + 记忆 + Session 系统 ──
-    from animate.core.config import get_log_config
+    from anima.core.config import get_log_config
     log_cfg = get_log_config()
     log_db = ChatLogDB(
         max_db_size_mb=log_cfg["max_db_size_mb"],
         max_age_days=log_cfg["max_age_days"],
     )
 
-    from animate.core.session.store import SessionStore
-    from animate.core.memory.default_provider import DefaultMemoryProvider
-    from animate.core.memory.store import MemoryStore
-    from animate.core.paths import sessions_dir, memory_dir
+    from anima.core.session.store import SessionStore
+    from anima.core.memory.default_provider import DefaultMemoryProvider
+    from anima.core.memory.store import MemoryStore
+    from anima.core.paths import sessions_dir, memory_dir
 
     session_store = SessionStore(db_path=str(sessions_dir() / "sessions.db"))
     memory_store = MemoryStore(db_path=str(memory_dir() / "memory.db"))
@@ -542,6 +542,6 @@ def main():
 
 if __name__ == "__main__":
     # 延迟导入避免循环
-    from animate.core.rag.VectorStore import VectorStore
-    from animate.core.rag.KeywordStore import KeywordStore
+    from anima.core.rag.VectorStore import VectorStore
+    from anima.core.rag.KeywordStore import KeywordStore
     main()
