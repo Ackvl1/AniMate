@@ -4,7 +4,7 @@
 >
 > 当前角色：BanG Dream! 丰川祥子（Oblivionis）
 >
-> 源码量：~5,200 行（animate/core/）· 测试：491 个，全部通过
+> 源码量：~5,400 行（animate/core/）· 测试：493 个，全部通过
 
 ---
 
@@ -73,7 +73,7 @@ AniMate/
 │       │   ├── logging.py    # PhaseEventLogger（多计时器 + batch flush）
 │       │   ├── response.py   # AgentResponse / ReflectionSignal
 │       │   ├── permission.py # PermissionManager（HITL 权限管理）
-│       │   └── nodes/        # ★ 7 个节点
+│       │   └── nodes/        # ★ 8 个节点
 │       │       ├── rag_vector.py     # 向量检索节点（并行）
 │       │       ├── rag_keyword.py    # 关键词检索节点（并行）
 │       │       ├── system_prompt.py  # 系统 prompt 构建
@@ -118,6 +118,7 @@ AniMate/
 │   ├── logs/                 # chat_log.db（6 张表 + compression/tool_audit/emotion）
 │   ├── memory/               # memory.db（FTS5 事实库 + 信任分）
 │   ├── sessions/             # sessions.db（session 生命周期）
+│   ├── trace/                # diff_history.db（节点 diff 轨迹，7 字段 async）
 │   └── prompts/              # 角色人设 prompt
 ├── docs/                     # 项目文档
 │   ├── README.md             # 本文档
@@ -128,7 +129,7 @@ AniMate/
 │       ├── html/             # 架构图 HTML
 │       ├── handoff/          # 交接文档
 │       └── claude/           # 旧 Claude skill
-└── tests/                    # 416 个测试
+└── tests/                    # 493 个测试
 ```
 
 ---
@@ -210,7 +211,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 
 ## 测试覆盖
 
-491 个测试，全部通过（86s）
+493 个测试，全部通过（86s）
 
 ### 测试模块
 
@@ -243,7 +244,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | **Phase 6: NodeResult diff** | test_node_result_diff.py | 5 |
 | **Phase 6: RunContext snapshot** | test_run_context_snapshot.py | 8 |
 | **Phase 6: Engine apply_diff** | test_engine_apply_diff.py | 8 |
-| **Phase 6: DiffHistory** | test_diff_history.py | 7 |
+|| **Phase 6: DiffHistory** | test_diff_history.py | 6 |
 | **Phase 6: MemoryNode diff** | test_node_memory_diff.py | 5 |
 | **Phase 6: AfterNode diff** | test_node_after_diff.py | 8 |
 | **Phase 6: ReflectNode diff** | test_node_reflect_diff.py | 9 |
@@ -276,11 +277,12 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 - /compact /resume CLI + 多计时器日志 + 信任分 + 日志轮转 + 杂项修复
 - **测试**: 416 → 全部通过
 
-### Phase 6: Return-Diff 架构重构
-- NodeResult.diff + RunContext.snapshot/restore + GraphEngine._apply_diff
-- FIELD_WRITERS 强制校验 + DiffHistory SQLite 持久化
-- MemoryNode/AfterNode/ReflectNode 迁移完成
-- **测试**: 491 → 全部通过（+75）
+### Phase 6: Return-Diff 架构重构（✅ 完成）
+- 全部 8 节点迁移到 Return-Diff（方案 A：ReactNode diff 6 字段）
+- _apply_diff 重构（emotion/gesture 显式 final emit）+ checkpoint/restore
+- DiffHistory 7 字段 async（WAL mode，独立 DB animate/data/trace/）
+- FIELD_WRITERS 自动激活 + 边界情况全覆盖
+- **测试**: 493 → 全部通过（+77）
 
 ---
 
@@ -343,7 +345,7 @@ QWEN_API_KEY=sk-xxx...        # 阿里通义 Qwen 可选
 | 图引擎 | BSP 调度 + 异步生成器 + 冲突检测 + Return-Diff |
 | 流式 | char-by-char replay + inline (emotion,gesture) marker |
 | DiffHistory | SQLite 持久化节点 diff + 时间范围查询 |
-| 测试 | pytest（491 tests） |
+|| 测试 | pytest（493 tests） |
 | MCP | stdio 协议（filesystem / memory / github / brave-search） |
 
 ---
