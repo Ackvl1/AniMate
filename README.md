@@ -459,7 +459,7 @@ QWEN_API_KEY=sk-xxx...        # 阿里通义 Qwen 可选
 
 | 需求 | 说明 |
 |------|------|
-| **VRAM** | ≥ 4GB（GTX 1660 / RTX 3050 起步） |
+| **VRAM** | ≥ 4GB（半精度）/ ≥ 6GB（全精度） |
 | **推理时间** | ~0.5-2 秒/句（取决于 GPU） |
 | **支持格式** | WAV, MP3 |
 | **流式支持** | chunk-based streaming TTS |
