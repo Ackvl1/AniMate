@@ -450,7 +450,7 @@ QWEN_API_KEY=sk-xxx...        # 阿里通义 Qwen 可选
 
 | 组件 | 规格 | 说明 |
 |------|------|------|
-| **GPU** | GTX 1660 6GB / RTX 3050+ | CosyVoice TTS 推理 |
+| **GPU** | GTX 1650 4GB+ | CosyVoice TTS 推理（半精度） |
 | **CPU** | 4 核+ | 并行节点执行 |
 | **内存** | 8GB+ | 大模型 context + 多进程 |
 | **存储** | 5GB+ SSD | 模型 + 知识库 |
