@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 from animate.core.engine.node import Node, NodeResult
 from animate.core.llm.models import LLMResult, ToolCall
 from animate.core.log import setup_logger
+from animate.core.config import get_agent_config
 from animate.core.agent.nodes.marker_streamer import TextMarkerStreamer
 from animate.core.memory.conversation import estimate_tokens
 
@@ -23,6 +24,12 @@ if TYPE_CHECKING:
     from animate.core.engine.context import RunContext
 
 logger = setup_logger(__name__)
+
+# 从 config 读取 max_react_rounds
+try:
+    _react_cfg = get_agent_config()
+except Exception:
+    _react_cfg = {}
 
 
 class ReactNode(Node):
@@ -34,7 +41,7 @@ class ReactNode(Node):
       3. 无 tool_calls → 结束
     """
 
-    MAX_ROUNDS = 10
+    MAX_ROUNDS = _react_cfg.get("max_react_rounds", 10)
 
     reads = {"messages", "is_retry", "feedback", "retry_feedback_injected"}
     writes = {"messages", "raw_text", "emotion", "gesture", "llm_call_count", "accumulated_usage"}

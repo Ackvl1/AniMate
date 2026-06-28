@@ -24,7 +24,8 @@ from animate.core.log import setup_logger, ChatLogDB
 logger = setup_logger(__name__)
 
 
-MAX_GRAPH_STEPS = 50
+from animate.core.config import get_agent_config
+MAX_GRAPH_STEPS = get_agent_config()["max_graph_steps"]
 
 
 class Agent:

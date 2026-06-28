@@ -43,7 +43,7 @@ class ContextManager:
         self._log_db = log_db
         self._accumulated = 0
         self._compact_failures = 0
-        self._compact_max_failures = 3
+        self._compact_max_failures = cfg.get("max_failures", 3)
         self._compress_count = 0
 
     def update_from_response(self, usage: dict) -> None:

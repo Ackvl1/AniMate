@@ -53,6 +53,10 @@ compress:
   max_failures: 3
   model_limit: 1000000
 
+agent:
+  max_graph_steps: 50    # 图引擎最大执行步数
+  max_react_rounds: 10  # ReactNode 最大工具调用轮数
+
 log:
   max_db_size_mb: 50
   max_age_days: 30

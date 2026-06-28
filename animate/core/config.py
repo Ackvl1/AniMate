@@ -162,6 +162,15 @@ def get_compress_config() -> dict:
     }
 
 
+def get_agent_config() -> dict:
+    """获取 Agent 参数配置。"""
+    cfg = _get_data().get("agent", {})
+    return {
+        "max_graph_steps": cfg.get("max_graph_steps", 50),
+        "max_react_rounds": cfg.get("max_react_rounds", 10),
+    }
+
+
 def get_log_config() -> dict:
     """获取日志轮转参数配置。"""
     cfg = _get_data().get("log", {})
