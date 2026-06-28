@@ -6,19 +6,50 @@ import json
 import logging
 from typing import Any
 
+import re as _re
 from animate.core.memory.provider import MemoryProvider
 from animate.core.memory.store import MemoryStore
 
 logger = logging.getLogger(__name__)
 
 
+# ── Session End 提取 ──────────────────────────────────────────
+
+EXTRACT_PROMPT_TEMPLATE = (
+    "你是一个事实提取器。从以下对话中提取关于用户的稳定事实和偏好。\n"
+    "规则：\n"
+    "- 只提取关于用户（user）的客观事实，不提取角色（assistant）的表演性台词\n"
+    "- 事实用第三人称客观陈述（如\"用户喜欢音乐\"而非\"我觉得用户喜欢音乐\"）\n"
+    "- 忽略寒暄、命令、无信息量的消息\n"
+    "- 如果没有可提取的事实，返回空列表\n"
+    "{domain_hint}\n"
+    "返回 JSON 格式：\n"
+    '{{"facts": [{{"content": "事实内容", "category": "user_pref|project|general"}}]}}\n'
+    "对话：\n"
+    "{conversation}\n"
+)
+
+_DOMAIN_KEYWORDS = {
+    "saki": "关注领域：音乐、乐队、钢琴、人际关系、情感偏好、生活习惯",
+}
+
+
+def _build_domain_hint(persona_name=None):
+    if not persona_name:
+        return ""
+    hint = _DOMAIN_KEYWORDS.get(persona_name)
+    return f"\n特别关注：{hint}" if hint else ""
+
+
 class DefaultMemoryProvider(MemoryProvider):
     """基于 MemoryStore (SQLite + FTS5) 的默认长期记忆实现。"""
 
-    def __init__(self, store: MemoryStore | None = None, log_db=None):
+    def __init__(self, store: MemoryStore | None = None, log_db=None,
+                 persona_name: str | None = None):
         self._store = store or MemoryStore()
         self._log_db = log_db
         self._session_id: str = ""
+        self._persona_name = persona_name
 
     @property
     def name(self) -> str:
@@ -35,6 +66,81 @@ class DefaultMemoryProvider(MemoryProvider):
         logger.debug("[memory] session switch: %s → %s", old_session_id, new_session_id)
         self._session_id = new_session_id
 
+    def on_session_end(self, messages: list[dict], llm=None) -> None:
+        """会话结束时 LLM 深度提取长期事实。同步调用，异常不阻断 reset。"""
+        if llm is None:
+            return
+        # 1. 过滤：user 消息 < 4 条 → 跳过
+        user_count = sum(1 for m in messages if m.get("role") == "user")
+        if user_count < 4:
+            logger.debug("[memory] on_session_end: only %d user msgs, skip", user_count)
+            return
+        # 2. 格式化完整对话
+        conversation = self._format_conversation(messages)
+        # 3. 构建 prompt（角色领域关键词注入）
+        domain_hint = _build_domain_hint(getattr(self, "_persona_name", None))
+        prompt = EXTRACT_PROMPT_TEMPLATE.format(
+            domain_hint=domain_hint,
+            conversation=conversation,
+        )
+        try:
+            # 4. LLM 提取（同步）
+            result = llm.chat([
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": "请提取上述对话中的事实。"},
+            ])
+            raw = result.content.strip()
+            # 5. 解析 JSON
+            json_str = raw.removeprefix("```json").removesuffix("```").strip()
+            data = json.loads(json_str)
+            facts = data.get("facts", [])
+            # 6. 逐条归一化 + 入库
+            extracted_count = 0
+            for f in facts:
+                content = self._normalize_fact(f.get("content", ""))
+                if not content or len(content) < 2:
+                    continue
+                category = f.get("category", "general")
+                if category not in ("user_pref", "project", "general"):
+                    category = "general"
+                # 7. 双写：状态层 + 审计层
+                fid = self._store.add_fact(content, category=category, trust_score=0.7)
+                if self._log_db:
+                    self._log_db.add_fact(
+                        fact_text=content,
+                        source_trace="session_end",
+                    )
+                extracted_count += 1
+                logger.info("[memory] on_session_end extracted: %s (fid=%d)", content[:50], fid)
+            logger.info("[memory] on_session_end: extracted %d facts from %d msgs",
+                        extracted_count, len(messages))
+        except Exception as e:
+            logger.warning("[memory] on_session_end LLM extraction failed: %s", e)
+
+    @staticmethod
+    def _format_conversation(messages: list[dict]) -> str:
+        """格式化完整对话为 LLM 可读文本。"""
+        lines = []
+        for m in messages:
+            role = m.get("role", "")
+            content = m.get("content", "")
+            if role in ("user", "assistant") and content.strip():
+                label = "用户" if role == "user" else "角色"
+                text = content[:2000]
+                lines.append(f"{label}: {text}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _normalize_fact(text: str) -> str:
+        """文本归一化：全/半角统一 + 常见缩写展开 + 去尾标点。"""
+        # 全角数字→半角
+        for fw, hw in zip("０１２３４５６７８９", "0123456789"):
+            text = text.replace(fw, hw)
+        # 常见缩写展开
+        for abbr, full in {"SC2": "星际争霸2", "SCII": "星际争霸2", "BD": "邦邦梦想"}.items():
+            text = _re.sub(rf"\b{abbr}\b", full, text)
+        # 去首尾空白和尾部标点
+        return text.strip().rstrip("。，！？.!?;；").strip()
     def prefetch(self, query: str, *, limit: int = 5) -> list[dict[str, Any]]:
         """每轮对话前检索相关长期事实。
 

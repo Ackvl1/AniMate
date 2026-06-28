@@ -471,7 +471,7 @@ def main():
 
     session_store = SessionStore(db_path=str(sessions_dir() / "sessions.db"))
     memory_store = MemoryStore(db_path=str(memory_dir() / "memory.db"))
-    memory_provider = DefaultMemoryProvider(memory_store, log_db=log_db)
+    memory_provider = DefaultMemoryProvider(memory_store, log_db=log_db, persona_name="saki")
 
     agent = Agent.create_default(
         llm=llm,
