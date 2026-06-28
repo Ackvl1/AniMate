@@ -171,6 +171,23 @@ def get_log_config() -> dict:
     }
 
 
+def get_memory_config() -> dict:
+    """获取记忆系统参数配置。"""
+    cfg = _get_data().get("memory", {})
+    se = cfg.get("session_end", {})
+    pf = cfg.get("prefetch", {})
+    return {
+        "session_end": {
+            "min_user_messages": se.get("min_user_messages", 4),
+            "content_limit": se.get("content_limit", 2000),
+            "trust_score": se.get("trust_score", 0.7),
+        },
+        "prefetch": {
+            "limit": pf.get("limit", 5),
+        },
+    }
+
+
 # ── 向后兼容：from animate.core.config import LLM_CATALOG 仍可用 ──
 
 def __getattr__(name: str):

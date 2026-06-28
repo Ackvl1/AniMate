@@ -9,6 +9,7 @@ from typing import Any
 import re as _re
 from animate.core.memory.provider import MemoryProvider
 from animate.core.memory.store import MemoryStore
+from animate.core.config import get_memory_config
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +71,13 @@ class DefaultMemoryProvider(MemoryProvider):
         """会话结束时 LLM 深度提取长期事实。同步调用，异常不阻断 reset。"""
         if llm is None:
             return
-        # 1. 过滤：user 消息 < 4 条 → 跳过
+        cfg = get_memory_config()["session_end"]
+        min_user = cfg["min_user_messages"]
+        content_limit = cfg["content_limit"]
+        trust_score = cfg["trust_score"]
+        # 1. 过滤：user 消息 < 阈值 → 跳过
         user_count = sum(1 for m in messages if m.get("role") == "user")
-        if user_count < 4:
+        if user_count < min_user:
             logger.debug("[memory] on_session_end: only %d user msgs, skip", user_count)
             return
         # 2. 格式化完整对话
@@ -104,7 +109,7 @@ class DefaultMemoryProvider(MemoryProvider):
                 if category not in ("user_pref", "project", "general"):
                     category = "general"
                 # 7. 双写：状态层 + 审计层
-                fid = self._store.add_fact(content, category=category, trust_score=0.7)
+                fid = self._store.add_fact(content, category=category, trust_score=trust_score)
                 if self._log_db:
                     self._log_db.add_fact(
                         fact_text=content,
@@ -120,13 +125,14 @@ class DefaultMemoryProvider(MemoryProvider):
     @staticmethod
     def _format_conversation(messages: list[dict]) -> str:
         """格式化完整对话为 LLM 可读文本。"""
+        content_limit = get_memory_config()["session_end"]["content_limit"]
         lines = []
         for m in messages:
             role = m.get("role", "")
             content = m.get("content", "")
             if role in ("user", "assistant") and content.strip():
                 label = "用户" if role == "user" else "角色"
-                text = content[:2000]
+                text = content[:content_limit]
                 lines.append(f"{label}: {text}")
         return "\n".join(lines)
 
@@ -141,8 +147,10 @@ class DefaultMemoryProvider(MemoryProvider):
             text = _re.sub(rf"\b{abbr}\b", full, text)
         # 去首尾空白和尾部标点
         return text.strip().rstrip("。，！？.!?;；").strip()
-    def prefetch(self, query: str, *, limit: int = 5) -> list[dict[str, Any]]:
+    def prefetch(self, query: str, *, limit: int | None = None) -> list[dict[str, Any]]:
         """每轮对话前检索相关长期事实。
+        if limit is None:
+            limit = get_memory_config()["prefetch"]["limit"]
 
         先用全文 FTS5 搜索，如果没结果则拆成单字/词逐个 LIKE 搜索，
         解决中文整句 FTS5 AND 语义匹配不到短事实的问题。

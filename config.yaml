@@ -56,3 +56,11 @@ compress:
 log:
   max_db_size_mb: 50
   max_age_days: 30
+
+memory:
+  session_end:
+    min_user_messages: 4      # 低于此数不触发 LLM 提取
+    content_limit: 2000        # 单条消息截断长度（控制 prompt 大小）
+    trust_score: 0.7           # LLM 提取 > regex(0.3)
+  prefetch:
+    limit: 5                   # 每轮检索事实数量上限
