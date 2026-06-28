@@ -443,23 +443,24 @@ QWEN_API_KEY=sk-xxx...        # 阿里通义 Qwen 可选
 | **GPU** | 不需要 | LLM 通过 API 调用 |
 | **CPU** | 2 核+ | CLI + SQLite |
 | **内存** | 4GB+ | 最小化运行 |
+| **存储** | 500MB+ | 代码 + 数据 |
 | **网络** | 需要 | API 调用依赖网络 |
 
 ### 推荐配置（含 TTS + 3D 角色）
 
 | 组件 | 规格 | 说明 |
 |------|------|------|
-| **GPU** | NVIDIA RTX 4060 Ti+ | 8GB+ VRAM，TTS + VRM 并行 |
-| **CPU** | 8 核+ | 并行节点执行 |
-| **内存** | 16GB+ | 大模型 context + 多进程 |
-| **存储** | 50GB+ SSD | NVMe SSD 加速模型加载 |
+| **GPU** | GTX 1660 6GB / RTX 3050+ | CosyVoice TTS 推理 |
+| **CPU** | 4 核+ | 并行节点执行 |
+| **内存** | 8GB+ | 大模型 context + 多进程 |
+| **存储** | 5GB+ SSD | 模型 + 知识库 |
 
 ### CosyVoice 3.0 特殊需求
 
 | 需求 | 说明 |
 |------|------|
-| **VRAM** | ≥ 6GB（RTX 3060 起步） |
-| **推理时间** | ~1-3 秒/句（取决于 GPU） |
+| **VRAM** | ≥ 4GB（GTX 1660 / RTX 3050 起步） |
+| **推理时间** | ~0.5-2 秒/句（取决于 GPU） |
 | **支持格式** | WAV, MP3 |
 | **流式支持** | chunk-based streaming TTS |
 
