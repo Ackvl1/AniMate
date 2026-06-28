@@ -65,7 +65,7 @@ Accepted (2026-06-24)
 
 ## 新增组件
 
-### LogCollector（`animate/core/log/collector.py`）
+### LogCollector（`anima/core/log/collector.py`）
 
 审计事件分派器。Node 零感知——继续 `emit()`，LogCollector 在 agent 层收口。
 

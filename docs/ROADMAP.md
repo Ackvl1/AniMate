@@ -47,7 +47,7 @@
 **2. TTSClient 封装**
 
 ```python
-# animate/core/tts/client.py
+# anima/core/tts/client.py
 
 class TTSClient(ABC):
     """TTS 客户端抽象基类"""
@@ -97,7 +97,7 @@ class CosyVoiceClient(TTSClient):
 **3. Emotion → 语调映射表**
 
 ```python
-# animate/core/tts/emotion_mapping.py
+# anima/core/tts/emotion_mapping.py
 
 EMOTION_TO_STYLE = {
     # emotion      →  (speed, pitch, energy, style_tag)
@@ -139,10 +139,10 @@ async for event in agent.chat_stream(user_input):
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `animate/core/tts/__init__.py` | 新建 | TTS 模块入口 |
-| `animate/core/tts/client.py` | 新建 | TTSClient ABC + CosyVoiceClient |
-| `animate/core/tts/emotion_mapping.py` | 新建 | emotion → 语调映射表 |
-| `animate/core/tts/audio_queue.py` | 新建 | 音频队列 + 播放管理 |
+| `anima/core/tts/__init__.py` | 新建 | TTS 模块入口 |
+| `anima/core/tts/client.py` | 新建 | TTSClient ABC + CosyVoiceClient |
+| `anima/core/tts/emotion_mapping.py` | 新建 | emotion → 语调映射表 |
+| `anima/core/tts/audio_queue.py` | 新建 | 音频队列 + 播放管理 |
 | `config.yaml` | 修改 | 新增 `tts` 配置段 |
 | `requirements.txt` | 修改 | 新增 `aiohttp`（如未有） |
 | `tests/test_tts_client.py` | 新建 | 单元测试 |
@@ -456,7 +456,7 @@ GET    /api/health              → 健康检查
 **3. 服务端实现**
 
 ```python
-# animate/api/app.py
+# anima/api/app.py
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
@@ -528,7 +528,7 @@ async def ws_chat(websocket: WebSocket):
 **4. 事件协议**
 
 ```python
-# animate/api/protocol.py
+# anima/api/protocol.py
 
 from dataclasses import dataclass, asdict
 from typing import Any
@@ -557,7 +557,7 @@ EVENT_TYPES = {
 **5. 会话管理**
 
 ```python
-# animate/api/sessions.py
+# anima/api/sessions.py
 
 from animate.core.memory.session_store import SessionStore
 
@@ -581,11 +581,11 @@ class SessionManager:
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `animate/api/__init__.py` | 新建 | API 模块入口 |
-| `animate/api/app.py` | 新建 | FastAPI 应用 + 路由 |
-| `animate/api/protocol.py` | 新建 | 事件协议定义 |
-| `animate/api/sessions.py` | 新建 | 会话管理器 |
-| `animate/api/dependencies.py` | 新建 | 依赖注入（Agent 工厂） |
+| `anima/api/__init__.py` | 新建 | API 模块入口 |
+| `anima/api/app.py` | 新建 | FastAPI 应用 + 路由 |
+| `anima/api/protocol.py` | 新建 | 事件协议定义 |
+| `anima/api/sessions.py` | 新建 | 会话管理器 |
+| `anima/api/dependencies.py` | 新建 | 依赖注入（Agent 工厂） |
 | `config.yaml` | 修改 | 新增 `api` 配置段（host, port） |
 | `requirements.txt` | 修改 | 新增 `fastapi`, `uvicorn[standard]` |
 | `tests/test_api_chat.py` | 新建 | REST 端点测试 |
@@ -632,7 +632,7 @@ class SessionManager:
 **1. Adapter 抽象**
 
 ```python
-# animate/api/adapter.py
+# anima/api/adapter.py
 
 from abc import ABC, abstractmethod
 
@@ -727,7 +727,7 @@ async def main():
 **3. 共享 Agent 工厂**
 
 ```python
-# animate/api/app.py（追加）
+# anima/api/app.py（追加）
 
 def create_agent_factory(config_path: str = "config.yaml"):
     """创建 Agent 工厂函数"""
@@ -752,9 +752,9 @@ def create_agent_factory(config_path: str = "config.yaml"):
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `animate/api/adapter.py` | 新建 | ClientAdapter 抽象 + CLI/Web 实现 |
+| `anima/api/adapter.py` | 新建 | ClientAdapter 抽象 + CLI/Web 实现 |
 | `cli.py` | 修改 | 重构为使用 CLIAdapter |
-| `animate/api/app.py` | 修改 | 新增 `create_agent_factory` |
+| `anima/api/app.py` | 修改 | 新增 `create_agent_factory` |
 | `tests/test_adapter_cli.py` | 新建 | CLI Adapter 测试 |
 
 #### 测试策略
@@ -878,7 +878,7 @@ pyinstaller \
   --add-data "data/:data" \
   --add-data "prompts/:prompts" \
   --hidden-import "animate.core.agent" \
-  animate/api/server.py
+  anima/api/server.py
 
 # 输出: dist/animate-server (Linux/macOS)
 # 输出: dist/animate-server.exe (Windows)
@@ -925,7 +925,7 @@ jobs:
 | `src-tauri/Cargo.toml` | 新建 | Rust 依赖 |
 | `package.json` | 新建 | 前端 + Tauri 依赖 |
 | `frontend/` | 新建 | 前端源码（Phase 7.2 VRM） |
-| `animate/api/server.py` | 新建 | FastAPI 服务器入口 |
+| `anima/api/server.py` | 新建 | FastAPI 服务器入口 |
 | `.github/workflows/release.yml` | 新建 | CI/CD 构建 |
 | `scripts/build-sidecar.sh` | 新建 | PyInstaller 打包脚本 |
 
@@ -1099,9 +1099,9 @@ async def benchmark_pipeline():
 | `tests/test_e2e_integration.py` | 新建 | 全链路集成测试 |
 | `tests/benchmark_e2e.py` | 新建 | 性能基准测试 |
 | `tests/conftest.py` | 修改 | 新增 TestClient fixture |
-| `animate/api/app.py` | 修改 | 事件路由优化 |
+| `anima/api/app.py` | 修改 | 事件路由优化 |
 | `frontend/src/vrm/vrm-controller.ts` | 修改 | WebSocket 重连 + 心跳 |
-| `animate/core/tts/audio_queue.py` | 修改 | 音频缓冲优化 |
+| `anima/core/tts/audio_queue.py` | 修改 | 音频缓冲优化 |
 
 #### 测试策略
 

@@ -49,11 +49,11 @@ pip install -r requirements.txt
 
 | 层 | 状态 | 职责 | 目录 |
 |----|------|------|------|
-| **接口层** | ✅ CLI 已实现, FastAPI 待开发 | 用户交互入口、协议适配 | `animate/api/` (计划中), `cli.py` |
+| **接口层** | ✅ CLI 已实现, FastAPI 待开发 | 用户交互入口、协议适配 | `anima/api/` (计划中), `cli.py` |
 | **UI 层** | 🔲 待开发 | 可视化界面、3D 渲染窗口 | `frontend/` (计划中) |
-| **表现层** | 🔲 待开发 | TTS 语音合成 + 3D 角色动画 | `animate/presentation/` (计划中) |
-| **Core 层** | ✅ 完成 | 核心对话引擎 | `animate/core/` |
-| **数据层** | ✅ 完成 | 持久化存储 | `animate/data/` |
+| **表现层** | 🔲 待开发 | TTS 语音合成 + 3D 角色动画 | `anima/presentation/` (计划中) |
+| **Core 层** | ✅ 完成 | 核心对话引擎 | `anima/core/` |
+| **数据层** | ✅ 完成 | 持久化存储 | `anima/data/` |
 
 ---
 
@@ -180,8 +180,8 @@ GET    /api/health            → 健康检查
 
 ### 目录
 
-- `animate/api/app.py` — FastAPI 应用入口（计划中）
-- `animate/api/routes/` — 路由模块（计划中）
+- `anima/api/app.py` — FastAPI 应用入口（计划中）
+- `anima/api/routes/` — 路由模块（计划中）
 - `cli.py` — CLI REPL 接口（已实现）
 
 ---
@@ -206,8 +206,8 @@ GET    /api/health            → 健康检查
 
 ### 目录
 
-- `animate/presentation/tts/` — TTS 客户端（计划中）
-- `animate/presentation/vrm/` — VRM 控制器（计划中）
+- `anima/presentation/tts/` — TTS 客户端（计划中）
+- `anima/presentation/vrm/` — VRM 控制器（计划中）
 - `frontend/src/vrm/` — 前端 VRM 模块（计划中）
 - `assets/models/` — VRM 模型文件（计划中）
 - `assets/animations/` — 手势动画文件（计划中）
@@ -224,27 +224,27 @@ GET    /api/health            → 健康检查
 6. **层级依赖只能向下。** 上层可以依赖下层，禁止反向依赖：
    - 接口层 → UI 层 → 表现层 → Core 层 → 数据层 ✅
    - 数据层 → Core 层 ❌ / 表现层 → 接口层 ❌
-   - Core 层不得 import `animate/api/`、`animate/presentation/`、`frontend/`
-   - 表现层不得 import `animate/api/`
+   - Core 层不得 import `anima/api/`、`anima/presentation/`、`frontend/`
+   - 表现层不得 import `anima/api/`
 
 ## Where to put things
 
 | Adding... | Put it in... |
 |-----------|-------------|
-| A new node | `animate/core/agent/nodes/`, register in agent.py `_build_graph` |
-| A new tool | New `LocalTool` subclass in `animate/core/tools/function/` |
+| A new node | `anima/core/agent/nodes/`, register in agent.py `_build_graph` |
+| A new tool | New `LocalTool` subclass in `anima/core/tools/function/` |
 | A new knowledge file | `data/documents/` — re-run `buildLibrary.py` |
-| A change to RAG | `animate/core/rag/` |
+| A change to RAG | `anima/core/rag/` |
 | A new LLM/embedding provider | `config.yaml` |
 | Persona tweaks | `prompts/<name>_persona.txt` (not Python) |
-| A new shared constant | `animate/core/constants.py` |
+| A new shared constant | `anima/core/constants.py` |
 | Compression params | `config.yaml` → `compress` section |
 | Log rotation params | `config.yaml` → `log` section |
-| API endpoint (FastAPI) | `animate/api/routes/` (Phase 8) |
-| TTS 客户端 | `animate/presentation/tts/` (Phase 7) |
-| VRM 控制器 | `animate/presentation/vrm/` (Phase 7) |
+| API endpoint (FastAPI) | `anima/api/routes/` (Phase 8) |
+| TTS 客户端 | `anima/presentation/tts/` (Phase 7) |
+| VRM 控制器 | `anima/presentation/vrm/` (Phase 7) |
 | 前端 VRM 模块 | `frontend/src/vrm/` (Phase 7-9) |
-| WebSocket 事件处理 | `animate/api/ws/` (Phase 8) |
+| WebSocket 事件处理 | `anima/api/ws/` (Phase 8) |
 
 ---
 
@@ -281,7 +281,7 @@ GET    /api/health            → 健康检查
 - [x] _apply_diff 重构（emotion/gesture 去 auto final emit + 去判等）
 - [x] MergeNode → diff
 - [x] ReactNode → diff 6 字段（方案 A，流式 ctx 直写保留）
-- [x] DiffHistory 7 字段 async + WAL + 独立 DB animate/data/trace/
+- [x] DiffHistory 7 字段 async + WAL + 独立 DB anima/data/trace/
 - [x] checkpoint/restore + _capture_inputs + duration_ms
 - [x] 8 个边界情况全覆盖
 - [x] Agent 兜底 emit emotion.final

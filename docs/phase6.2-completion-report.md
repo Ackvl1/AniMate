@@ -86,7 +86,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/memory_node.py` |
+| 文件 | `anima/core/agent/nodes/memory_node.py` |
 | reads | `{"user_input"}` |
 | writes | `{"memory_facts"}` |
 | diff 字段 | `{"memory_facts": list}` |
@@ -98,7 +98,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/rag_vector.py` |
+| 文件 | `anima/core/agent/nodes/rag_vector.py` |
 | reads | `{"user_input"}` |
 | writes | `{"rag_vector_chunks"}` |
 | diff 字段 | `{"rag_vector_chunks": list[str]}` |
@@ -110,7 +110,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/rag_keyword.py` |
+| 文件 | `anima/core/agent/nodes/rag_keyword.py` |
 | reads | `{"user_input"}` |
 | writes | `{"rag_keyword_chunks"}` |
 | diff 字段 | `{"rag_keyword_chunks": list[str]}` |
@@ -122,7 +122,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/system_prompt.py` |
+| 文件 | `anima/core/agent/nodes/system_prompt.py` |
 | reads | `{"is_retry", "feedback", "memory_facts"}` |
 | writes | `{"system_parts", "retry_feedback_injected"}` |
 | diff 字段 | `{"system_parts": list[str], "retry_feedback_injected": bool}` |
@@ -133,7 +133,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/merge.py` |
+| 文件 | `anima/core/agent/nodes/merge.py` |
 | reads | `{"rag_vector_chunks", "rag_keyword_chunks", "system_parts", "messages", "user_input"}` |
 | writes | `{"messages"}` |
 | diff 字段 | `{"messages": list[dict]}` |
@@ -144,7 +144,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/react.py` |
+| 文件 | `anima/core/agent/nodes/react.py` |
 | reads | `{"messages", "is_retry", "feedback", "retry_feedback_injected"}` |
 | writes | `{"messages", "raw_text", "emotion", "gesture", "llm_call_count", "accumulated_usage"}` |
 | diff 字段 | `{"messages": list, "raw_text": str, "emotion": str, "gesture": str\|None, "llm_call_count": int, "accumulated_usage": int}` |
@@ -156,7 +156,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/after.py` |
+| 文件 | `anima/core/agent/nodes/after.py` |
 | reads | `{"raw_text", "emotion", "gesture"}` |
 | writes | `{"final_text", "emotion", "gesture"}` |
 | diff 字段 | `{"final_text": str, "emotion": str, "gesture": str\|None}` |
@@ -168,7 +168,7 @@ async def _apply_diff(self, ctx, diff, node_name, emit):
 
 | 维度 | 详情 |
 |------|------|
-| 文件 | `animate/core/agent/nodes/reflect.py` |
+| 文件 | `anima/core/agent/nodes/reflect.py` |
 | reads | `{"final_text", "user_input", "llm_call_count", "accumulated_usage"}` |
 | writes | `{"is_retry", "feedback", "retry_feedback_injected", "accumulated_usage", "llm_call_count"}` |
 | diff 字段 | `{"is_retry": bool, "feedback": str, "retry_feedback_injected": None\|False, "llm_call_count": int, "accumulated_usage": int}` |
@@ -210,11 +210,11 @@ CREATE INDEX IF NOT EXISTS idx_diff_ts ON diff_history(created_at);
 ### 4.2 独立文件位置
 
 ```
-animate/data/trace/diff_history.db    ← 独立 SQLite 文件
-animate/data/logs/chat_log.db         ← 与聊天日志解耦
+anima/data/trace/diff_history.db    ← 独立 SQLite 文件
+anima/data/logs/chat_log.db         ← 与聊天日志解耦
 ```
 
-通过 `animate/core/paths.py` 的 `trace_dir()` 统一解析路径。
+通过 `anima/core/paths.py` 的 `trace_dir()` 统一解析路径。
 
 ### 4.3 Async + WAL + Buffer
 
@@ -382,20 +382,20 @@ g.add_conditional_edge("reflect", reflect_router, {
 
 | 文件 | 变更类型 | 说明 |
 |------|----------|------|
-| `animate/core/engine/graph.py` | 修改 | `_apply_diff` 去 auto-emit + `_capture_inputs` + DiffHistory 集成 |
-| `animate/core/engine/diff_history.py` | 新增 | 独立 SQLite DiffHistory 实现（7 字段、async、WAL、buffer） |
-| `animate/core/engine/context.py` | 修改 | `RunContext.snapshot()` / `restore()` + `FIELD_WRITERS` 完整声明 |
-| `animate/core/engine/node.py` | 修改 | `NodeResult.diff` 字段声明 |
-| `animate/core/paths.py` | 新增 | `trace_dir()` 路径函数 |
-| `animate/core/agent/agent.py` | 修改 | DiffHistory 单例、Agent 兜底 emit final、条件边路由修复 |
-| `animate/core/agent/nodes/memory_node.py` | 修改 | 返回 diff 而非写 ctx |
-| `animate/core/agent/nodes/rag_vector.py` | 修改 | 返回 diff 而非写 ctx |
-| `animate/core/agent/nodes/rag_keyword.py` | 修改 | 返回 diff 而非写 ctx |
-| `animate/core/agent/nodes/system_prompt.py` | 修改 | 返回 diff + 去双写 |
-| `animate/core/agent/nodes/merge.py` | 修改 | 返回 diff + 不清空 messages |
-| `animate/core/agent/nodes/react.py` | 修改 | 返回 6 字段 diff（方案 A） |
-| `animate/core/agent/nodes/after.py` | 修改 | 返回 diff + 显式 emit final + 空分支修复 |
-| `animate/core/agent/nodes/reflect.py` | 修改 | 返回 diff + 标记清理 |
+| `anima/core/engine/graph.py` | 修改 | `_apply_diff` 去 auto-emit + `_capture_inputs` + DiffHistory 集成 |
+| `anima/core/engine/diff_history.py` | 新增 | 独立 SQLite DiffHistory 实现（7 字段、async、WAL、buffer） |
+| `anima/core/engine/context.py` | 修改 | `RunContext.snapshot()` / `restore()` + `FIELD_WRITERS` 完整声明 |
+| `anima/core/engine/node.py` | 修改 | `NodeResult.diff` 字段声明 |
+| `anima/core/paths.py` | 新增 | `trace_dir()` 路径函数 |
+| `anima/core/agent/agent.py` | 修改 | DiffHistory 单例、Agent 兜底 emit final、条件边路由修复 |
+| `anima/core/agent/nodes/memory_node.py` | 修改 | 返回 diff 而非写 ctx |
+| `anima/core/agent/nodes/rag_vector.py` | 修改 | 返回 diff 而非写 ctx |
+| `anima/core/agent/nodes/rag_keyword.py` | 修改 | 返回 diff 而非写 ctx |
+| `anima/core/agent/nodes/system_prompt.py` | 修改 | 返回 diff + 去双写 |
+| `anima/core/agent/nodes/merge.py` | 修改 | 返回 diff + 不清空 messages |
+| `anima/core/agent/nodes/react.py` | 修改 | 返回 6 字段 diff（方案 A） |
+| `anima/core/agent/nodes/after.py` | 修改 | 返回 diff + 显式 emit final + 空分支修复 |
+| `anima/core/agent/nodes/reflect.py` | 修改 | 返回 diff + 标记清理 |
 
 ### 8.3 新增测试文件
 

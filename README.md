@@ -75,7 +75,7 @@ Anima Agent/
 ├── cli.py                    # 主入口 CLI REPL（流式输出 + HITL 权限）
 ├── buildLibrary.py           # 知识库构建工具
 ├── config.yaml               # Provider 目录 + 压缩参数 + 日志轮转
-├── animate/
+├── anima/
 │   ├── core/                 # ★ Core 层：核心引擎
 │   │   ├── config.py         # YAML 配置加载（惰性）
 │   │   ├── constants.py      # 共享常量（emotion/gesture 列表）
@@ -345,7 +345,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 ### Phase 6: Return-Diff 架构重构（✅ 完成）
 - 全部 8 节点迁移到 Return-Diff（方案 A：ReactNode diff 6 字段）
 - _apply_diff 重构（emotion/gesture 显式 final emit）+ checkpoint/restore
-- DiffHistory 7 字段 async（WAL mode，独立 DB animate/data/trace/）
+- DiffHistory 7 字段 async（WAL mode，独立 DB anima/data/trace/）
 - FIELD_WRITERS 自动激活 + 边界情况全覆盖
 - **测试**: 493 → 全部通过（+77）
 

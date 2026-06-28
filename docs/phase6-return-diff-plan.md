@@ -219,7 +219,7 @@ class RunContext:
 
 ### 2.7 DiffHistory 持久化
 
-**文件位置**：`animate/core/log/log_db.py`（与 ChatLogDB 一起）
+**文件位置**：`anima/core/log/log_db.py`（与 ChatLogDB 一起）
 
 **SQL Schema**：
 
@@ -572,7 +572,7 @@ async def _run_engine():
 ## 六、文件清单
 
 ### 新增文件
-- `animate/core/engine/diff_history.py` — DiffHistory 类
+- `anima/core/engine/diff_history.py` — DiffHistory 类
 - `tests/test_node_result_diff.py` — NodeResult 测试
 - `tests/test_run_context_snapshot.py` — RunContext 测试
 - `tests/test_engine_apply_diff.py` — GraphEngine 测试
@@ -582,12 +582,12 @@ async def _run_engine():
 - `tests/test_node_reflect_diff.py` — ReflectNode 迁移测试
 
 ### 修改文件
-- `animate/core/engine/node.py` — NodeResult 加 diff 字段
-- `animate/core/engine/context.py` — RunContext 加 snapshot/restore + FIELD_WRITERS 完善
-- `animate/core/engine/graph.py` — GraphEngine 加 _apply_diff + EXTRAS_FIELDS
-- `animate/core/agent/nodes/memory_node.py` — 返回 diff
-- `animate/core/agent/nodes/after.py` — 返回 diff
-- `animate/core/agent/nodes/reflect.py` — 返回 diff
+- `anima/core/engine/node.py` — NodeResult 加 diff 字段
+- `anima/core/engine/context.py` — RunContext 加 snapshot/restore + FIELD_WRITERS 完善
+- `anima/core/engine/graph.py` — GraphEngine 加 _apply_diff + EXTRAS_FIELDS
+- `anima/core/agent/nodes/memory_node.py` — 返回 diff
+- `anima/core/agent/nodes/after.py` — 返回 diff
+- `anima/core/agent/nodes/reflect.py` — 返回 diff
 - `tests/test_nodes_after.py` — 适配 diff 检查
 - `tests/test_nodes_reflect.py` — 适配 diff 检查
 - `tests/test_b10_b11_b12_fix.py` — 适配 diff 检查

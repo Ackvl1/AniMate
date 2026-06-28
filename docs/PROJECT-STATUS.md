@@ -45,8 +45,8 @@ Anima Agent 是一个**角色化 AI 对话伙伴**，通过 BSP 图引擎驱动�
 | 角色名 | 丰川祥子（Toyokawa Sakiko） |
 | 来源 | BanG Dream! It's MyGO!!!!! / Ave Mujica |
 | Persona ID | Oblivionis |
-| Persona 文件 | `animate/data/prompts/toyokawa_sakiko_persona.txt` |
-| 知识库 | `animate/data/documents/`（角色知识文档） |
+| Persona 文件 | `anima/data/prompts/toyokawa_sakiko_persona.txt` |
+| 知识库 | `anima/data/documents/`（角色知识文档） |
 | 情绪集 | calm, happy, sad, angry, surprised, confused, excited, shy, serious, playful |
 | 手势集 | nod, shake_head, wave, point, tilt_head, shrug, clap, crossed_arms |
 
@@ -156,7 +156,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | `created_at` | TIMESTAMP | 自动记录时间戳 |
 
 **技术特性**：
-- 独立 SQLite 文件：`animate/data/trace/diff_history.db`
+- 独立 SQLite 文件：`anima/data/trace/diff_history.db`
 - WAL 模式 + `busy_timeout=5000` + `synchronous=NORMAL`
 - `asyncio.Lock` 串行化写入
 - 缓冲区 100 条自动 flush
@@ -263,10 +263,10 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 
 | 数据库 | 文件路径 | 用途 | 表数量 |
 |--------|----------|------|--------|
-| **chat_log.db** | `animate/data/logs/chat_log.db` | 聊天日志 + 审计 | 7 表 |
-| **memory.db** | `animate/data/memory/memory.db` | 长期记忆 + FTS5 | 1 表 |
-| **sessions.db** | `animate/data/sessions/sessions.db` | 会话生命周期 | 1 表 |
-| **diff_history.db** | `animate/data/trace/diff_history.db` | 节点 diff 轨迹 | 1 表 |
+| **chat_log.db** | `anima/data/logs/chat_log.db` | 聊天日志 + 审计 | 7 表 |
+| **memory.db** | `anima/data/memory/memory.db` | 长期记忆 + FTS5 | 1 表 |
+| **sessions.db** | `anima/data/sessions/sessions.db` | 会话生命周期 | 1 表 |
+| **diff_history.db** | `anima/data/trace/diff_history.db` | 节点 diff 轨迹 | 1 表 |
 
 ### 6.2 chat_log.db 7 张表
 
@@ -401,7 +401,7 @@ session_end: 499 tests (+6)
 
 ## 8. 文件统计
 
-### 8.1 animate/core/ 源码
+### 8.1 anima/core/ 源码
 
 | 模块 | 主要文件 | 说明 |
 |------|----------|------|
@@ -417,7 +417,7 @@ session_end: 499 tests (+6)
 | **log/** | logger.py, log_db.py | 日志基础设施 |
 | **config.py, constants.py, errors.py, paths.py** | — | 共享配置 |
 
-**总行数**：约 **5,400 行**（animate/core/ 目录）
+**总行数**：约 **5,400 行**（anima/core/ 目录）
 
 ### 8.2 tests/ 目录
 
