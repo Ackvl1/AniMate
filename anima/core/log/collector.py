@@ -26,6 +26,7 @@ class LogCollector:
     def __init__(self, log_db: "ChatLogDB"):
         self._db = log_db
         self._tool_start_cache: dict[str, dict] = {}
+        self._tool_call_counter: int = 0
 
     # ── 事件分派入口 ─────────────────────────────────
 
@@ -45,7 +46,11 @@ class LogCollector:
 
     def _on_tool_start(self, ev: "AgentEvent") -> None:
         """工具开始执行：记录入参和开始时间。"""
-        self._tool_start_cache[ev.data.get("name", "")] = {
+        name = ev.data.get("name", "")
+        trace_id = ev.data.get("trace_id", "")
+        # 用 trace_id + name 作 key，避免并发同名工具覆盖
+        cache_key = f"{trace_id}:{name}"
+        self._tool_start_cache[cache_key] = {
             "args": ev.data.get("arguments", {}),
             "start": time.time(),
         }
@@ -53,7 +58,9 @@ class LogCollector:
     def _on_tool_done(self, ev: "AgentEvent") -> None:
         """工具执行完成：写 tool_audit 表。"""
         name = ev.data.get("name", "")
-        cache = self._tool_start_cache.pop(name, {})
+        trace_id = ev.data.get("trace_id", "")
+        cache_key = f"{trace_id}:{name}"
+        cache = self._tool_start_cache.pop(cache_key, {})
         output = ev.data.get("result", "")
         duration_ms = int((time.time() - cache.get("start", time.time())) * 1000)
 
@@ -70,7 +77,9 @@ class LogCollector:
     def _on_tool_denied(self, ev: "AgentEvent") -> None:
         """工具被用户拒绝：写 audit 但标记 status=denied。"""
         name = ev.data.get("name", "")
-        cache = self._tool_start_cache.pop(name, {})
+        trace_id = ev.data.get("trace_id", "")
+        cache_key = f"{trace_id}:{name}"
+        cache = self._tool_start_cache.pop(cache_key, {})
         duration_ms = int((time.time() - cache.get("start", time.time())) * 1000)
         self._db.log_tool_audit(
             trace_id=ev.data.get("trace_id", ""),

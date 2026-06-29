@@ -63,7 +63,9 @@ class ReflectNode(Node):
                 {"role": "system", "content": self.EVALUATE_PROMPT},
                 {"role": "user", "content": f"用户问题：{ctx.user_input}\n\n当前回复：{ctx.final_text}"},
             ]
-            result = self._llm.chat(eval_messages)
+            import asyncio
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, self._llm.chat, eval_messages)
             llm_call_count += 1
             if result.total_tokens:
                 accumulated_usage += result.total_tokens
@@ -84,7 +86,7 @@ class ReflectNode(Node):
             else:
                 # 回退：整个输出作为 JSON（兼容旧格式）
                 json_str = raw
-            json_str = json_str.removeprefix("```json").removesuffix("```").strip()
+            json_str = json_str.removeprefix("```json").removeprefix("```JSON").removeprefix("```python").removeprefix("```").removesuffix("```").strip()
             data = json.loads(json_str)
             level = int(data.get("level", 0))
             feedback = data.get("feedback", "")

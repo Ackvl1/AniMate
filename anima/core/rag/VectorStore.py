@@ -21,7 +21,7 @@ class VectorStore:
                 self.vectors = np.vstack((self.vectors, vectors))
         self.chunks.extend(chunks)
     
-    def search(self, query_vec: np.ndarray) -> list[tuple[str, float]]:
+    def search(self, query_vec: np.ndarray, top_k: int = 5) -> list[tuple[str, float]]:
         """余弦相似度检索。
         
         Args:
@@ -47,7 +47,7 @@ class VectorStore:
         cos_sim = (self.vectors @ query_vec.T) / (norms_v * norm_q.T + eps)  # (N, 1)
         scores = cos_sim.flatten()
 
-        top_indices = np.argsort(scores)[::-1]
+        top_indices = np.argsort(scores)[::-1][:top_k]
 
         return [(self.chunks[i], scores[i]) for i in top_indices]
     

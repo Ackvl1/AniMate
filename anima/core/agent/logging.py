@@ -153,15 +153,16 @@ class PhaseEventLogger:
             self._flush()
 
     def _flush(self) -> None:
-        """批量写入 + 单次 commit。"""
+        """批量写入，逐条处理，失败的保留下次重试。"""
         if not self._event_buffer:
             return
-        try:
-            for entry in self._event_buffer:
+        failed = []
+        for entry in self._event_buffer:
+            try:
                 self._db.log_phase(**entry)
-        except Exception:
-            pass  # 日志不影响主流程
-        self._event_buffer.clear()
+            except Exception:
+                failed.append(entry)
+        self._event_buffer = failed
 
     # ── 手动接口（向后兼容）────────────────────────────
 

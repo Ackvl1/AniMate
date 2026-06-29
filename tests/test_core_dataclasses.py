@@ -35,7 +35,7 @@ class TestRunContext:
 
     def test_trace_id_generated(self):
         ctx = RunContext(user_input="hi")
-        assert len(ctx.trace_id) == 8
+        assert len(ctx.trace_id) == 12
 
 
 class TestAgentResponse:

@@ -58,8 +58,10 @@ class SessionSearchTool(LocalTool):
     }
 
     # 安全属性：搜索是只读的
+    # is_parallel_safe=False：避免 run_in_executor 跨线程 SQLite，
+    # 预执行收益可忽略（< 10ms），走主线程安全路径
     is_read_only = True
-    is_parallel_safe = True
+    is_parallel_safe = False
     is_destructive = False
 
     def __init__(self, session_store: SessionStore, session_id: str):

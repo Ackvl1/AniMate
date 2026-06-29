@@ -210,10 +210,17 @@ class ReactNode(Node):
             except Exception:
                 pass  # 预执行失败不影响主流程
 
-    async def _execute_tool_async(self, name: str, args: dict) -> str:
-        """在后台线程中同步执行工具。"""
+    async def _execute_tool_async(self, name: str, args: dict, timeout: float = 30.0) -> str:
+        """在后台线程中同步执行工具，带超时保护。"""
+        import asyncio
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._tools.execute, name, args)
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, self._tools.execute, name, args),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            return f"[TIMEOUT] 工具 {name} 执行超时({timeout}s)"
 
     @staticmethod
     def _build_tool_calls(pending_calls: dict, ctx) -> list[ToolCall] | None:
@@ -249,8 +256,24 @@ class ReactNode(Node):
 
             messages.append(tc.to_assistant_message(content=result.content))
 
-            # 优先取流失中预执行的结果，否则同步执行
+            # 优先取流式中预执行的结果，否则同步执行
             if pre_fetch_tasks and idx in pre_fetch_tasks:
+                # 预执行路径仍需检查 HITL 权限
+                if self._permission_manager is not None:
+                    tool = self._tools.find(tc.name)
+                    if tool is not None and not tool.is_read_only:
+                        allowed = await self._permission_manager.check(
+                            tc.name, tool, tc.arguments
+                        )
+                        if not allowed:
+                            output = f"[HITL] 工具 {tc.name} 被用户拒绝"
+                            logger.warning(
+                                "[%s] pre-fetched tool %s denied by HITL",
+                                ctx.trace_id, tc.name,
+                            )
+                            messages.append(tc.to_tool_message(result=output))
+                            idx += 1
+                            continue
                 logger.info("[%s] using pre-fetched result for %s", ctx.trace_id, tc.name)
                 output = await pre_fetch_tasks[idx]
             else:
@@ -274,16 +297,17 @@ class ReactNode(Node):
 
             messages.append(tc.to_tool_message(result=output))
 
-            # System Re-Reminder
-            reminder = (
-                "<system-reminder>你仍然在扮演当前角色。"
-                "保持角色设定、语气和性格，不要因为工具调用而偏离角色。</system-reminder>"
-            )
-            messages.append({"role": "system", "content": reminder})
-
             preview = output[:50].replace("\n", "\\n")
             logger.info("[%s] tool %s -> %d chars: %s",
                         ctx.trace_id, tc.name, len(output), preview)
 
             status = "error" if "失败" in output or "错误" in output else "success"
             await emit("tool.done", name=tc.name, result=output, status=status)
+
+        # System Re-Reminder：每轮工具执行完毕后注入一条（而非每个工具一条）
+        if result.tool_calls:
+            reminder = (
+                "<system-reminder>你仍然在扮演当前角色。"
+                "保持角色设定、语气和性格，不要因为工具调用而偏离角色。</system-reminder>"
+            )
+            messages.append({"role": "system", "content": reminder})

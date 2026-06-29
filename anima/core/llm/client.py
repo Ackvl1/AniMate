@@ -198,7 +198,7 @@ class OpenAICompatibleClient:
             except self._retryable_errors() as e:
                 if attempt == self._max_retries:
                     raise LLMError(f"LLM 异步调用失败（已重试 {self._max_retries} 次）: {e}") from e
-                self._wait_and_log(attempt, e)
+                await self._wait_and_log_async(attempt, e)
                 continue
             except Exception as e:
                 raise LLMError(f"LLM 异步调用失败: {e}") from e
@@ -291,7 +291,7 @@ class OpenAICompatibleClient:
                     raise LLMError(f"LLM 流式调用中断: {e}") from e
                 if attempt == self._max_retries:
                     raise LLMError(f"LLM 异步流式调用失败（已重试 {self._max_retries} 次）: {e}") from e
-                self._wait_and_log(attempt, e)
+                await self._wait_and_log_async(attempt, e)
                 continue
             except Exception as e:
                 raise LLMError(f"LLM 异步流式调用失败: {e}") from e

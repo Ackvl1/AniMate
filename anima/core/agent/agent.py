@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import traceback
-from typing import AsyncGenerator, Callable
+from typing import AsyncGenerator
 
-from anima.core.engine.graph import Graph, GraphEngine, EventEmitter
+from anima.core.engine.graph import Graph, GraphEngine
 from anima.core.engine.context import RunContext
 from anima.core.engine.node import NodeResult, AgentEvent
 from anima.core.agent.nodes import ReactNode, AfterNode, ReflectNode
@@ -81,17 +80,19 @@ class Agent:
         from anima.core.context.manager import ContextManager
         self._ctx_mgr = ContextManager(llm=self._llm, session_store=self._session_store)
 
-        # Register memory tools
+        # Register memory tools（去重：同一 ToolRegistry 不重复注册）
         if self._memory_provider:
             for schema in self._memory_provider.get_tool_schemas():
-                self._tools.register_tool(MemoryProviderToolWrapper(schema, self._memory_provider))
+                if self._tools.find(schema["name"]) is None:
+                    self._tools.register_tool(MemoryProviderToolWrapper(schema, self._memory_provider))
 
         # Register session search tool（允许 LLM 检索历史对话）
         if self._session_store:
             from anima.core.tools.function.memory_tools import SessionSearchTool
-            self._tools.register_tool(
-                SessionSearchTool(self._session_store, self._session_id)
-            )
+            if self._tools.find("session_search") is None:
+                self._tools.register_tool(
+                    SessionSearchTool(self._session_store, self._session_id)
+                )
 
         self._graph = self._build_graph(llm, persona, vector_store, keyword_store,
                                         self._tools, permission_manager, memory_provider)
@@ -281,6 +282,14 @@ class Agent:
 
                 loop.run_until_complete(run())
             finally:
+                # 先取消所有挂起的 task，避免 loop.close() 时协程残留
+                pending = asyncio.all_tasks(loop)
+                for t in pending:
+                    t.cancel()
+                if pending:
+                    loop.run_until_complete(
+                        asyncio.gather(*pending, return_exceptions=True)
+                    )
                 loop.close()
 
             return AgentResponse(text=final_text, emotion=emotion, gesture=gesture)
@@ -406,26 +415,42 @@ class Agent:
 
         task = asyncio.create_task(_run_engine())
 
-        # 实时逐条 yield：引擎在后台运行，emit 往 queue 放，此循环取出 yield
-        while True:
-            ev = await queue.get()
-            if ev is None:
-                break
-            yield ev
-
-        # 确保异常传播（_run_engine 已内部处理异常，正常情况无 exception）
         try:
-            await task
-        except Exception:
-            pass
+            # 实时逐条 yield：引擎在后台运行，emit 往 queue 放，此循环取出 yield
+            while True:
+                ev = await queue.get()
+                if ev is None:
+                    break
+                yield ev
+
+            # 确保异常传播（_run_engine 已内部处理异常，正常情况无 exception）
+            try:
+                await task
+            except Exception:
+                pass
+        finally:
+            # 清理：如果消费者提前终止（异常/中断/GC），确保 task 和 queue 不泄漏
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):
+                    pass
+            # 排空 queue，释放所有挂起的 get() 协程引用
+            while not queue.empty():
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
 
         # ── Post-turn: 持久化 + 轻量提取 + done ──
         try:
             pl.on_chat_end(ctx)
 
             final_text = ctx.final_text or ctx.raw_text or ""
+            # 无条件保存 user message，避免空回复时丢失用户输入
+            self._messages.append({"role": "user", "content": user_input})
             if final_text.strip():
-                self._messages.append({"role": "user", "content": user_input})
                 self._messages.append({"role": "assistant", "content": final_text})
 
             # 轻量 regex 提取（零 API 成本）
@@ -511,6 +536,8 @@ class Agent:
                 self._phase_logger._db.close()
             except Exception:
                 pass
+        if self._log_collector:
+            self._log_collector = None
         if self._diff_history:
             try:
                 self._diff_history.close()

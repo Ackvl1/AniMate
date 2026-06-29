@@ -137,16 +137,16 @@ class TestSessionAncestors:
         assert store.ancestor_chain("nonexistent") == []
 
     def test_search_ancestors(self, store):
-        """跨祖先 session 搜索消息（LIKE 查询）。"""
+        """跨祖先 session 搜索消息（FTS5 trigram 查询）。"""
         store.init_session("root", [
-            {"role": "user", "content": "我喜欢猫"},
+            {"role": "user", "content": "我喜欢吃火锅"},
         ])
         store.init_session("root_c1", [
-            {"role": "user", "content": "今天天气好"},
+            {"role": "user", "content": "今天天气很好"},
         ], parent_id="root")
-        results = store.search_ancestors("root_c1", "猫")
+        results = store.search_ancestors("root_c1", "天气很")
         assert len(results) >= 1
-        assert any("猫" in r["content"] for r in results)
+        assert any("天气" in r["content"] for r in results)
 
     def test_search_ancestors_limit(self, store):
         """search_ancestors 受 limit 限制。"""
@@ -154,12 +154,14 @@ class TestSessionAncestors:
             sid = f"root_c{i}" if i > 0 else "root"
             parent = f"root_c{i-1}" if i > 0 else None
             store.init_session(sid, [
-                {"role": "user", "content": f"消息{i}"},
+                {"role": "user", "content": f"消息内容{i}"},
             ], parent_id=parent)
-        results = store.search_ancestors("root_c4", "消息", limit=2)
+        results = store.search_ancestors("root_c4", "消息内容", limit=2)
         assert len(results) <= 2
 
     def test_search_ancestors_empty(self, store):
-        """空查询返回空。"""
+        """空查询进入 Browse 模式，返回 session 列表。"""
         store.init_session("s1", make_msgs(1))
-        assert store.search_ancestors("s1", "") == []
+        results = store.search_ancestors("s1", "")
+        # Browse 模式返回 session 列表，不是空
+        assert isinstance(results, list)

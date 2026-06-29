@@ -1,4 +1,4 @@
-"""Tests for animate/core/paths.py — data directory resolution."""
+"""Tests for anima/core/paths.py — data directory resolution."""
 
 from pathlib import Path
 from anima.core.paths import (
@@ -18,18 +18,18 @@ def test_project_root_is_absolute_path():
     assert root.is_absolute()
 
 
-def test_data_root_is_under_animate():
-    """data_root() 应在 project_root/animate/data/。"""
+def test_data_root_is_under_anima():
+    """data_root() 应在 project_root/anima/data/。"""
     root = data_root()
     assert root.name == "data"
-    assert root.parent.name == "animate"
+    assert root.parent.name == "anima"
     assert root.parent.parent == project_root()
 
 
-def test_project_root_contains_animate():
-    """project_root 应包含 animate/ 目录。"""
+def test_project_root_contains_anima():
+    """project_root 应包含 anima/ 目录。"""
     root = project_root()
-    assert (root / "animate").is_dir()
+    assert (root / "anima").is_dir()
 
 
 def test_documents_dir():
@@ -51,6 +51,6 @@ def test_keywordlibrary_dir():
 
 
 def test_logs_dir():
-    """logs_dir() 应返回 animate/data/logs/。"""
+    """logs_dir() 应返回 anima/data/logs/。"""
     d = logs_dir()
     assert d == data_root() / "logs"

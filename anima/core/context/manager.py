@@ -207,9 +207,9 @@ class ContextManager:
         return True
 
     def _select_head(self, messages: list[dict]) -> set[int]:
-        """保护所有非 x_compressible 的 system prompt + 最早 head_rounds 轮非 system 消息。"""
+        """保护所有 system prompt（含压缩摘要）+ 最早 head_rounds 轮非 system 消息。"""
         protected = {i for i, m in enumerate(messages)
-                     if m["role"] == "system" and not m.get("x_compressible")}
+                     if m["role"] == "system"}
         rounds = 0
         for i, m in enumerate(messages):
             if m.get("x_compressible"):

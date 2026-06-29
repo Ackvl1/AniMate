@@ -7,6 +7,29 @@ from pathlib import Path
 
 from anima.core.tools.base import LocalTool
 
+# 工作区根目录：限制 LLM 只能访问项目内文件
+_WORKSPACE = Path(__file__).resolve().parent.parent.parent.parent
+
+# 跳过的二进制/无关文件扩展名
+_SKIP_EXTENSIONS = {
+    ".db", ".sqlite", ".sqlite3", ".pkl", ".pickle", ".pyc", ".pyo",
+    ".dll", ".so", ".dylib", ".exe", ".bin",
+    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".ico", ".webp",
+    ".mp3", ".mp4", ".wav", ".ogg", ".flac",
+    ".zip", ".tar", ".gz", ".7z", ".rar",
+    ".pdf", ".docx", ".xlsx", ".pptx",
+}
+
+
+def _safe_path(path_str: str) -> Path | None:
+    """解析路径并验证在工作区内。返回 None 表示越界。"""
+    p = Path(path_str).resolve()
+    try:
+        p.relative_to(_WORKSPACE)
+    except ValueError:
+        return None
+    return p
+
 
 class ReadFileTool(LocalTool):
     """读取文件内容。"""
@@ -32,7 +55,9 @@ class ReadFileTool(LocalTool):
 
     def execute(self, path: str, max_chars: int = 5000) -> str:
         try:
-            p = Path(path)
+            p = _safe_path(path)
+            if p is None:
+                return f"安全限制：路径不在工作区内: {path}"
             if not p.exists():
                 return f"文件不存在: {path}"
             content = p.read_text(encoding="utf-8")
@@ -67,7 +92,9 @@ class WriteFileTool(LocalTool):
 
     def execute(self, path: str, content: str) -> str:
         try:
-            p = Path(path)
+            p = _safe_path(path)
+            if p is None:
+                return f"安全限制：路径不在工作区内: {path}"
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(content, encoding="utf-8")
             return f"已写入 {len(content)} 字符到 {path}"
@@ -108,7 +135,9 @@ class SearchFilesTool(LocalTool):
 
     def execute(self, pattern: str, path: str = ".", mode: str = "content", max_results: int = 10) -> str:
         try:
-            root = Path(path).resolve()
+            root = _safe_path(path) if path != "." else Path.cwd().resolve()
+            if root is None:
+                return f"安全限制：路径不在工作区内: {path}"
             if not root.exists():
                 return f"目录不存在: {path}"
 
@@ -124,10 +153,12 @@ class SearchFilesTool(LocalTool):
                     return f"未找到匹配文件: {pattern}"
                 return "\n".join(matches)
 
-            # content 搜索（使用 regex 库带超时，防 ReDoS）
+            # content 搜索（跳过二进制/无关文件，regex 带超时防 ReDoS）
             results = []
             for f in root.rglob("*"):
                 if not f.is_file():
+                    continue
+                if f.suffix.lower() in _SKIP_EXTENSIONS:
                     continue
                 try:
                     text = f.read_text(encoding="utf-8", errors="ignore")
@@ -139,7 +170,7 @@ class SearchFilesTool(LocalTool):
                                 if len(results) >= max_results:
                                     break
                         except regex.TimeoutError:
-                            continue  # 这行正则超时，跳过继续搜
+                            continue
                 except Exception:
                     continue
                 if len(results) >= max_results:

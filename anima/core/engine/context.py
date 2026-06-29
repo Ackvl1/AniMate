@@ -71,7 +71,7 @@ class RunContext:
 
     def __post_init__(self):
         if not self.trace_id:
-            self.trace_id = uuid.uuid4().hex[:8]
+            self.trace_id = uuid.uuid4().hex[:12]
 
     def check_write_permission(self, field_name: str, node_name: str) -> bool:
         """检查节点是否有权限写入指定字段。"""

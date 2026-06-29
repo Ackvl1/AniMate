@@ -172,18 +172,21 @@ class GraphEngine:
         inputs = self._capture_inputs(node, ctx)
         t0 = __import__("time").monotonic()
         try:
-            result = await node.run(ctx, _emit)
-            self._node_results[name] = result
-            
-            # Phase 6: apply diff
+            result = await node.run(ctx, emit=_emit)
+
+            # 应用 diff 到 ctx（先 apply，成功后才记录结果）
             if result.diff:
                 await self._apply_diff(ctx, result.diff, name, _emit)
-                if self._diff_history:
-                    duration_ms = (__import__("time").monotonic() - t0) * 1000
-                    await self._diff_history.record(
-                        node_name=name, diff=result.diff, trace_id=ctx.trace_id,
-                        inputs=inputs, duration_ms=duration_ms,
-                    )
+
+            # 记录节点结果（供 Graph 路由查询）—— 在 diff 成功之后
+            self._node_results[name] = result
+
+            if self._diff_history:
+                duration_ms = (__import__("time").monotonic() - t0) * 1000
+                await self._diff_history.record(
+                    node_name=name, diff=result.diff, trace_id=ctx.trace_id,
+                    inputs=inputs, duration_ms=duration_ms,
+                )
         except Exception as e:
             ctx.restore(snapshot)
             raise
@@ -194,7 +197,8 @@ class GraphEngine:
             # FIELD_WRITERS 校验
             allowed = FIELD_WRITERS.get(field)
             if allowed and node_name not in allowed:
-                raise PermissionError(
+                from anima.core.errors import FieldWriteError
+                raise FieldWriteError(
                     f"Node '{node_name}' cannot write '{field}'"
                 )
             

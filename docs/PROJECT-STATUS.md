@@ -1,8 +1,8 @@
 # Anima Agent 项目状态文档
 
-> **最后更新**：2026-06-28  
-> **当前阶段**：Phase 6 全部完成 + session_end 实现  
-> **测试状态**：499 passed, 0 failed, 0 skipped  
+> **最后更新**：2026-06-29  
+> **当前阶段**：Phase 6 全部完成 + session_end + FTS5 升级  
+> **测试状态**：532 passed, 1 failed (pre-existing MCP), 2 skipped  
 > **角色**：BanG Dream! 丰川祥子（Oblivionis）
 
 ---
@@ -122,7 +122,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | **Phase 6.2** | Return-Diff 全节点迁移 | 493 | 2026-06-28 | 8 节点全部迁移 + DiffHistory 重写 + 6 bug 修复 |
 | **session_end** | 会话结束深度提取 | +6 | 2026-06-28 | LLM 深度事实提取 + 双写 MemoryStore + ChatLogDB |
 
-**累计测试增长**：96 → 133 → 180 → 250 → 416 → 493 → **499**
+**累计测试增长**：96 → 133 → 180 → 250 → 416 → 493 → 499 → **532**
 
 ---
 
@@ -226,9 +226,10 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | **配置** | YAML (config.yaml) | 惰性加载 |
 | **日志** | SQLite 7 张表 + 多计时器事件体系 | ChatLogDB |
 | **记忆** | SQLite + FTS5 + 信任评分 | MemoryStore |
+| **Session Search** | FTS5 trigram + BM25 | 三语全文索引 |
 | **流式** | char-by-char replay + inline marker | asyncio.Queue 桥接 |
 | **DiffHistory** | 独立 SQLite + WAL + async | 7 字段持久化 |
-| **测试** | pytest | 499 tests |
+| **测试** | pytest | 532 tests |
 | **MCP** | stdio 协议 | filesystem / memory / github / brave-search |
 
 ### 5.2 本地工具清单（11 个）
@@ -289,7 +290,16 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | 去重 | 文本归一化 + IntegrityError 机制 |
 | 工具 | `fact_store`（LLM 主动存储）、`fact_feedback`（±0.05） |
 
-### 6.4 diff_history.db
+### 6.4 sessions.db
+
+| 特性 | 说明 |
+|------|------|
+| 表 | sessions, session_messages, session_messages_fts |
+| 索引 | FTS5 trigram 全文索引（中/英/日三语） |
+| 搜索 | BM25 相关性排序 + 上下文窗口 |
+| 模式 | Search（FTS5 MATCH）+ Browse（无 query → 最近 session 列表） |
+
+### 6.5 diff_history.db
 
 | 特性 | 说明 |
 |------|------|
@@ -306,10 +316,10 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 ### 7.1 总览
 
 ```
-============================= 499 passed ==============================
+============================= 532 passed, 1 failed ==============================
 ```
 
-**499 个测试全部通过，零失败，零跳过。**
+**532 个测试通过，1 个 pre-existing 失败（MCP node_modules 路径），2 个跳过。**
 
 ### 7.2 测试模块明细
 
@@ -382,6 +392,7 @@ __entry__ → MemoryNode → fan_out → [RAGVectorNode, RAGKeywordNode, SystemP
 | **Nodes: React** | test_nodes_react.py | — | ReactNode |
 | **Merge No Clear** | test_merge_node_no_clear.py | 6 | MergeNode 不清空 |
 | **Session End** | test_session_end_extraction.py | 6 | 会话结束 LLM 提取 |
+| **Session FTS5** | test_session_fts5.py | 12 | FTS5 trigram 全文索引 |
 
 ### 7.3 测试增长趋势
 
@@ -395,6 +406,7 @@ Phase 5:   416 tests (+166)
 Phase 6.1: 438 tests (+22)
 Phase 6.2: 493 tests (+55)
 session_end: 499 tests (+6)
+FTS5 upgrade: 532 tests (+33)
 ```
 
 ---
@@ -423,8 +435,8 @@ session_end: 499 tests (+6)
 
 | 指标 | 值 |
 |------|-----|
-| 测试文件总数 | **68 个** |
-| 测试用例总数 | **499 个** |
+| 测试文件总数 | **69 个** |
+| 测试用例总数 | **532 个** |
 | 覆盖模块 | Agent, Engine, RAG, Memory, Tools, Log, Session, CLI |
 
 ### 8.3 项目根目录
@@ -443,10 +455,12 @@ session_end: 499 tests (+6)
 
 | 文件 | 说明 |
 |------|------|
-| `architecture-decision-records.md` | 14 个架构决策记录（ADR） |
+| `architecture-decision-records.md` | 15 个架构决策记录（ADR） |
 | `phase6-return-diff-plan.md` | Phase 6 迁移计划 |
 | `phase6.2-completion-report.md` | Phase 6.2 完成报告 |
 | `phase5.2-bug-fixes-summary.md` | Phase 5.2 Bug 修复汇总 |
+| `PRD-session-search-fts5.md` | Session Search FTS5 升级 PRD |
+| `session-summary-2026-06-29.md` | 2026-06-29 Session 总结 |
 | `archive/prd/` | 16 个历史 PRD（已实现） |
 | `archive/tutorials/` | Phase 1-7 开发教程 |
 

@@ -6,13 +6,13 @@ from pathlib import Path
 
 
 def project_root() -> Path:
-    """返回项目根目录（包含 animate/ 的目录）。"""
+    """返回项目根目录（包含 anima/ 的目录）。"""
     return Path(__file__).resolve().parent.parent.parent
 
 
 def data_root() -> Path:
-    """返回数据层根目录 animate/data/。"""
-    return project_root() / "animate" / "data"
+    """返回数据层根目录 anima/data/。"""
+    return project_root() / "anima" / "data"
 
 
 def documents_dir() -> Path:

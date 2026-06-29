@@ -115,11 +115,12 @@ class DiffHistory:
         } for r in rows]
 
     def cleanup(self) -> int:
-        """删除超过 retention_days 的记录"""
-        cutoff = time.time() - self._retention_days * 86400
+        """清理过期记录。返回删除行数。"""
+        from datetime import datetime, timedelta, timezone
+        cutoff_dt = datetime.now(timezone.utc) - timedelta(days=self._retention_days)
+        cutoff_str = cutoff_dt.strftime('%Y-%m-%d %H:%M:%S')
         cursor = self._conn.execute(
-            "DELETE FROM diff_history WHERE "
-            "strftime('%s', created_at) < ?", (cutoff,)
+            "DELETE FROM diff_history WHERE created_at < ?", (cutoff_str,)
         )
         self._conn.commit()
         return cursor.rowcount

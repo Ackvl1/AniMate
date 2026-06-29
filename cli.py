@@ -190,12 +190,8 @@ def handle_log_command(parts: list[str], log_db: ChatLogDB) -> bool:
                 print(f"  [{r['id']}] {r['created_at'][:19]} | {r['emotion'] or '-'} | {r['response_text'][:60]}…")
         else:
             # 列出所有 session
-            from anima.core.session.store import SessionStore
-            from anima.core.paths import sessions_dir
             try:
-                ss = SessionStore(db_path=str(sessions_dir() / "sessions.db"))
-                sessions = ss.list_sessions()
-                ss.close()
+                sessions = agent._session_store.list_sessions()
             except Exception:
                 print("⚠ 无法加载 session 数据库。")
                 return True
@@ -433,11 +429,11 @@ def main():
     load_dotenv()
 
     # ── 加载 RAG 知识库 ──
-    vectorLibrary = VectorStore.load(Path("animate/data/vectorlibrary/Saki.pkl"))
-    keywordLibrary = KeywordStore.load(Path("animate/data/keywordlibrary/Saki.pkl"))
+    vectorLibrary = VectorStore.load(Path("anima/data/vectorlibrary/Saki.pkl"))
+    keywordLibrary = KeywordStore.load(Path("anima/data/keywordlibrary/Saki.pkl"))
 
     # ── 加载人设 ──
-    persona = Path("animate/data/prompts/saki_persona.txt").read_text(encoding="utf-8")
+    persona = Path("anima/data/prompts/saki_persona.txt").read_text(encoding="utf-8")
 
     # ── 创建 LLM ──
     llm = OpenAICompatibleClient()
@@ -535,6 +531,14 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        # 先取消所有挂起的 task，避免 loop.close() 时协程残留报错
+        pending = asyncio.all_tasks(loop)
+        for t in pending:
+            t.cancel()
+        if pending:
+            loop.run_until_complete(
+                asyncio.gather(*pending, return_exceptions=True)
+            )
         agent.shutdown()
         loop.close()
         output_adapter.send(AgentResponse(text="再见！"))

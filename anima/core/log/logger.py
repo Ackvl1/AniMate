@@ -19,7 +19,7 @@ def setup_logger(name: str, level: int = logging.WARNING) -> logging.Logger:
 
 
 def set_log_level(level: int) -> None:
-    """运行时切换所有 animate.* logger 的级别。"""
+    """运行时切换所有 anima.* logger 的级别。"""
     for name in list(logging.root.manager.loggerDict):
-        if name.startswith("animate"):
+        if name.startswith("anima"):
             logging.getLogger(name).setLevel(level)

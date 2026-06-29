@@ -70,7 +70,7 @@ class TestAgentChatLogging:
         agent, db, _ = agent_with_db
         agent.chat("查询trace")
         logs = db.query(limit=1)
-        assert len(logs[0]["trace_id"]) == 8
+        assert len(logs[0]["trace_id"]) == 12
 
     def test_phase_events_contain_before_node(self, agent_with_db):
         """phase_events 应包含节点条目。"""

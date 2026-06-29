@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 from anima.core.engine.graph import Graph, GraphEngine
 from anima.core.engine.node import Node, NodeResult
 from anima.core.engine.context import RunContext, FIELD_WRITERS
+from anima.core.errors import FieldWriteError
 
 
 # ── 测试用节点 ──
@@ -97,7 +98,7 @@ class TestEngineApplyDiff:
         assert ctx.extras["memory_facts"] == ["fact1", "fact2"]
     
     def test_apply_diff_field_writers_violation(self):
-        """越权写入应该抛出 PermissionError"""
+        """越权写入应该抛出 FieldWriteError"""
         g = Graph()
         g.add_node("memory", UnauthorizedNode())  # 使用 memory 节点名
         g.set_entry("memory")
@@ -106,7 +107,7 @@ class TestEngineApplyDiff:
         
         engine = g.create_engine()
         
-        with pytest.raises(PermissionError):
+        with pytest.raises(FieldWriteError):
             self._run_async(engine.run(ctx, AsyncMock()))
     
     def test_no_diff_node_does_not_modify_ctx(self):

@@ -11,3 +11,7 @@ class LLMError(AgentError):
 
 class ToolError(AgentError):
     """工具执行异常。"""
+
+
+class FieldWriteError(AgentError):
+    """节点越权写入 RunContext 字段。"""

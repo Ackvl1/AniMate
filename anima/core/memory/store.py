@@ -115,7 +115,7 @@ class MemoryStore:
         rows = self._conn.execute(
             """SELECT *, MAX(0.05, trust_score
                           - (julianday("now") - julianday(created_at)) * 0.01
-                          + MIN(retrieval_count * 0.002, 0.2)) AS effective_score
+                          + MIN(retrieval_count * 0.02, 0.2)) AS effective_score
                FROM facts WHERE content LIKE ?
                ORDER BY effective_score DESC LIMIT ?""",
             (f"%{query}%", limit),
@@ -229,6 +229,25 @@ class MemoryStore:
 
     # ── 轻量正则提取 ──────────────────────────────────
 
+    # 疑问/无意义片段过滤
+    _NOISE_PATTERN = re.compile(
+        r'[？?！!]$'                        # 句末疑问/感叹
+        r'|^[吗呢啥什么怎么哪儿谁哪为何干嘛]+$'  # 纯疑问词
+        r'|^[的了呢啊吧吗嘛]+$'              # 纯语气词
+        r'|^[、：；""''（）【】《》…—.,!?:;(){}-]+$'  # 纯标点/符号
+    )
+
+    @classmethod
+    def _is_valid_fact(cls, text: str) -> bool:
+        """过滤低质量事实片段：太短、疑问词、纯标点。"""
+        if len(text) < 2:
+            return False
+        if cls._NOISE_PATTERN.search(text):
+            return False
+        # 去掉标点后至少有一个有效字符
+        stripped = re.sub(r'[\s，。！？、：；""''（）【】《》…—.,!?:;(){}-]', '', text)
+        return len(stripped) >= 1
+
     def extract_quick_facts(self, message: str) -> list[int]:
         """从用户消息中通过正则快速提取事实（零 API 成本，15 pattern）。"""
         patterns = [
@@ -264,7 +283,7 @@ class MemoryStore:
             m = pat.search(message)
             if m:
                 text = m.group(1).strip() if m.lastindex else message[:200]
-                if len(text) >= 2:
+                if self._is_valid_fact(text):
                     fid = self.add_fact(text, category=cat)
                     extracted.append(fid)
         return extracted

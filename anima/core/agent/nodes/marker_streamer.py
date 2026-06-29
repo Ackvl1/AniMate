@@ -91,7 +91,7 @@ class TextMarkerStreamer:
 
     @staticmethod
     def strip_markers(text: str) -> str:
-        """从完整文本中仅剥离 (emotion,gesture) 格式标记，保留正常括号文本。"""
+        """从完整文本中剥离 (emotion,gesture) 和 (emotion) 格式标记。"""
         import re
-        # 匹配 (单词,单词) 格式，其中单词由字母/数字/下划线组成
-        return re.sub(r"\(\s*(\w+)\s*,\s*(\w+)\s*\)", "", text).strip()
+        # 匹配 (单词,单词) 双参数和 (单词) 单参数标记
+        return re.sub(r"\(\s*(\w+)\s*(?:,\s*(\w+)\s*)?\)", "", text).strip()

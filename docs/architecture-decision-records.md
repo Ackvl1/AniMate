@@ -337,3 +337,37 @@ Core 层 (Agent · Graph · Tools · Memory)
 1. **依赖只能向下**: 上层可调用下层接口，下层不可感知上层存在（表现层不 import UI 层）。
 2. **Core 层不改**: Core 层（GraphEngine、Node、ToolRegistry 等）保持现有架构不变，五层重构不触碰 Core 层内部实现。
 3. **表现层可选**: 表现层组件可禁用（无 TTS/VRM 时降级为纯文本输出），不阻塞 Core 层运行。
+
+---
+
+## ADR-15: Session Search — FTS5 trigram 全文索引
+
+**状态**: ✅ 已实现（2026-06-29）
+**关联**: [PRD: Session Search — FTS5 全文索引升级](../PRD-session-search-fts5.md)
+**背景**: `SessionSearchTool` 当前用 Python 子串匹配遍历所有 session 的消息 JSON，O(S×M×L) 复杂度，无索引、无排序、无上下文。且项目需要支持中/英/日三语混合搜索。
+
+**决策**: 将 `search_ancestors` 升级为 **SQLite FTS5 + trigram tokenizer** + 独立消息表：
+
+- **消息表 (session_messages)**：`(id, session_id, role, content, msg_index)`，每次 `save_messages()` 时增量写入
+- **trigram tokenizer**：唯一的零依赖、三语通用方案（中文/日文 3-gram 可比 jieba 召回略低但完全够用，英文 3-gram 天然覆盖）
+- **BM25 排序**：FTS5 内置 BM25 相关性排序（`ORDER BY rank`），取代无排序的祖先链遍历
+- **2 模式**：Search（FTS5 MATCH + 上下文窗口）+ Browse（无 query → 列出最近 session）
+
+**替代方案对比**:
+
+| 方案 | 优点 | 缺点 |
+|------|------|------|
+| **FTS5 trigram (选择)** | 零依赖、三语通用、BM25 排序、与 memory.db 统一技术栈 | trigram 对 1-2 字符短词召回弱；需独立消息表 |
+| FTS5 unicode61 | 零依赖、兼容性最好 | 中文日文逐字拆分，召回极差 |
+| FTS5 + jieba | 中文分词精准 | 日文完全不支持；新增数据层依赖 |
+| 保持现状态 | 零改动 | 线性变慢、无排序、三语支持差 |
+
+**代价**:
+1. 新增消息表增加 ~20% 存储（session 中每条消息独立一行）
+2. `save_messages()` 增加增量写入逻辑
+3. trigram 对短召回词的弱召回是已知 Trade-off，不做特殊处理
+
+**约束**:
+1. FTS5 content= 模式自动同步，无需手动维护内容一致性
+2. Search 结果保持 Result Budgeting 兼容（5000 字符截断）
+3. 第一期仅实现 Search + Browse，Scroll 模式后续按需
